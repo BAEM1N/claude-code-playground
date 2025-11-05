@@ -12,6 +12,12 @@ const CoursePage = () => <div>Course Page</div>;
 const ChatPage = () => <div>Chat Page</div>;
 const FilesPage = () => <div>Files Page</div>;
 
+// Assignment Pages
+import AssignmentsPage from './pages/AssignmentsPage';
+import AssignmentDetailPage from './pages/AssignmentDetailPage';
+import AssignmentFormPage from './pages/AssignmentFormPage';
+import SubmissionListPage from './pages/SubmissionListPage';
+
 // Protected Route wrapper
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -60,6 +66,46 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <FilesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/courses/:courseId/assignments"
+        element={
+          <ProtectedRoute>
+            <AssignmentsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/courses/:courseId/assignments/new"
+        element={
+          <ProtectedRoute>
+            <AssignmentFormPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/courses/:courseId/assignments/:assignmentId"
+        element={
+          <ProtectedRoute>
+            <AssignmentDetailPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/courses/:courseId/assignments/:assignmentId/edit"
+        element={
+          <ProtectedRoute>
+            <AssignmentFormPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/courses/:courseId/assignments/:assignmentId/submissions"
+        element={
+          <ProtectedRoute>
+            <SubmissionListPage />
           </ProtectedRoute>
         }
       />

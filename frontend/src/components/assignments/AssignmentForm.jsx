@@ -4,6 +4,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { assignmentsAPI } from '../../services/api';
+import FileUpload from '../common/FileUpload';
+import FileList from '../common/FileList';
 
 const AssignmentForm = ({ courseId, assignmentId, initialData }) => {
   const navigate = useNavigate();
@@ -24,6 +26,13 @@ const AssignmentForm = ({ courseId, assignmentId, initialData }) => {
     is_published: false,
   });
 
+  // File management
+  const [materialFiles, setMaterialFiles] = useState([]);
+  const [solutionFiles, setSolutionFiles] = useState([]);
+  const [rubricFiles, setRubricFiles] = useState([]);
+  const [existingFiles, setExistingFiles] = useState([]);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
+
   useEffect(() => {
     if (initialData) {
       setFormData({
@@ -33,6 +42,22 @@ const AssignmentForm = ({ courseId, assignmentId, initialData }) => {
       });
     }
   }, [initialData]);
+
+  // Load existing files for editing
+  useEffect(() => {
+    if (assignmentId) {
+      loadExistingFiles();
+    }
+  }, [assignmentId]);
+
+  const loadExistingFiles = async () => {
+    try {
+      const response = await assignmentsAPI.getAssignmentFiles(assignmentId);
+      setExistingFiles(response.data);
+    } catch (err) {
+      console.error('Failed to load files:', err);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -54,12 +79,21 @@ const AssignmentForm = ({ courseId, assignmentId, initialData }) => {
         start_date: formData.start_date ? new Date(formData.start_date).toISOString() : null,
       };
 
+      let createdAssignmentId = assignmentId;
+
       if (assignmentId) {
         // Update existing assignment
         await assignmentsAPI.updateAssignment(assignmentId, submitData);
       } else {
         // Create new assignment
-        await assignmentsAPI.createAssignment(courseId, submitData);
+        const response = await assignmentsAPI.createAssignment(courseId, submitData);
+        createdAssignmentId = response.data.id;
+      }
+
+      // Upload files if any
+      if (materialFiles.length > 0 || solutionFiles.length > 0 || rubricFiles.length > 0) {
+        setUploadingFiles(true);
+        await uploadFiles(createdAssignmentId);
       }
 
       navigate(`/courses/${courseId}/assignments`);
@@ -67,7 +101,35 @@ const AssignmentForm = ({ courseId, assignmentId, initialData }) => {
       setError(err.response?.data?.detail || err.message);
     } finally {
       setLoading(false);
+      setUploadingFiles(false);
     }
+  };
+
+  const uploadFiles = async (assignmentId) => {
+    const uploadPromises = [];
+
+    // Upload material files
+    materialFiles.forEach(file => {
+      uploadPromises.push(
+        assignmentsAPI.attachFileToAssignment(assignmentId, file, 'material')
+      );
+    });
+
+    // Upload solution files
+    solutionFiles.forEach(file => {
+      uploadPromises.push(
+        assignmentsAPI.attachFileToAssignment(assignmentId, file, 'solution')
+      );
+    });
+
+    // Upload rubric files
+    rubricFiles.forEach(file => {
+      uploadPromises.push(
+        assignmentsAPI.attachFileToAssignment(assignmentId, file, 'rubric')
+      );
+    });
+
+    await Promise.all(uploadPromises);
   };
 
   return (
@@ -210,8 +272,45 @@ const AssignmentForm = ({ courseId, assignmentId, initialData }) => {
             )}
           </div>
 
+          {/* File Attachments */}
+          <div className="space-y-6 pt-4 border-t border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900">파일 첨부</h3>
+
+            {/* Existing Files */}
+            {existingFiles.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-3">기존 첨부 파일</h4>
+                <FileList files={existingFiles} />
+              </div>
+            )}
+
+            {/* Material Files */}
+            <FileUpload
+              label="학습 자료 (강의 자료, 참고 문서 등)"
+              onFileSelect={setMaterialFiles}
+              accept="*/*"
+              maxSizeMB={50}
+            />
+
+            {/* Solution Files */}
+            <FileUpload
+              label="정답 파일 (마감 후 공개 가능)"
+              onFileSelect={setSolutionFiles}
+              accept="*/*"
+              maxSizeMB={50}
+            />
+
+            {/* Rubric Files */}
+            <FileUpload
+              label="채점 기준표"
+              onFileSelect={setRubricFiles}
+              accept="*/*"
+              maxSizeMB={50}
+            />
+          </div>
+
           {/* Other Options */}
-          <div className="space-y-3">
+          <div className="space-y-3 pt-4 border-t border-gray-200">
             <div className="flex items-center">
               <input
                 type="checkbox"
@@ -259,10 +358,10 @@ const AssignmentForm = ({ courseId, assignmentId, initialData }) => {
           <div className="flex gap-3 pt-4">
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || uploadingFiles}
               className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
-              {loading ? '저장 중...' : assignmentId ? '수정하기' : '과제 만들기'}
+              {uploadingFiles ? '파일 업로드 중...' : loading ? '저장 중...' : assignmentId ? '수정하기' : '과제 만들기'}
             </button>
             <button
               type="button"

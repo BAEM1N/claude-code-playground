@@ -3,6 +3,7 @@
  */
 import React, { useState } from 'react';
 import { assignmentsAPI } from '../../services/api';
+import FileUpload from '../common/FileUpload';
 
 const SubmissionForm = ({ assignmentId, onSuccess, onCancel }) => {
   const [loading, setLoading] = useState(false);
@@ -11,6 +12,10 @@ const SubmissionForm = ({ assignmentId, onSuccess, onCancel }) => {
     content: '',
     submission_text: '',
   });
+
+  // File management
+  const [attachedFiles, setAttachedFiles] = useState([]);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -26,13 +31,30 @@ const SubmissionForm = ({ assignmentId, onSuccess, onCancel }) => {
     setError(null);
 
     try {
-      await assignmentsAPI.submitAssignment(assignmentId, formData);
+      // Submit the assignment
+      const response = await assignmentsAPI.submitAssignment(assignmentId, formData);
+      const submissionId = response.data.id;
+
+      // Upload files if any
+      if (attachedFiles.length > 0) {
+        setUploadingFiles(true);
+        await uploadFiles(submissionId);
+      }
+
       onSuccess();
     } catch (err) {
       setError(err.response?.data?.detail || err.message);
     } finally {
       setLoading(false);
+      setUploadingFiles(false);
     }
+  };
+
+  const uploadFiles = async (submissionId) => {
+    const uploadPromises = attachedFiles.map(file =>
+      assignmentsAPI.attachFileToSubmission(submissionId, file)
+    );
+    await Promise.all(uploadPromises);
   };
 
   return (
@@ -76,22 +98,25 @@ const SubmissionForm = ({ assignmentId, onSuccess, onCancel }) => {
         />
       </div>
 
-      {/* File Upload Info */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p className="text-sm text-blue-800">
-          💡 <strong>팁:</strong> 파일 제출이 필요한 경우, 파일을 먼저 자료함에 업로드한 후
-          위 제출 내용에 파일 링크를 포함하세요.
-        </p>
+      {/* File Attachments */}
+      <div className="pt-4 border-t border-gray-200">
+        <FileUpload
+          label="첨부 파일"
+          onFileSelect={setAttachedFiles}
+          accept="*/*"
+          maxSizeMB={100}
+          multiple={true}
+        />
       </div>
 
       {/* Buttons */}
-      <div className="flex gap-3">
+      <div className="flex gap-3 pt-4">
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || uploadingFiles}
           className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
-          {loading ? '제출 중...' : '제출하기'}
+          {uploadingFiles ? '파일 업로드 중...' : loading ? '제출 중...' : '제출하기'}
         </button>
         <button
           type="button"

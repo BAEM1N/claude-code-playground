@@ -2,7 +2,7 @@
 API v1 router.
 """
 from fastapi import APIRouter
-from .endpoints import auth, courses, channels, messages, files, notifications, assignments
+from .endpoints import auth, courses, channels, messages, files, notifications, assignments, assignment_files
 
 api_router = APIRouter()
 
@@ -13,3 +13,4 @@ api_router.include_router(messages.router, prefix="/messages", tags=["messages"]
 api_router.include_router(files.router, prefix="/files", tags=["files"])
 api_router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
 api_router.include_router(assignments.router, prefix="/assignments", tags=["assignments"])
+api_router.include_router(assignment_files.router, prefix="/assignments", tags=["assignment-files"])

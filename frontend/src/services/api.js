@@ -125,6 +125,25 @@ export const assignmentsAPI = {
   gradeSubmission: (submissionId, data) => api.post(`/assignments/submissions/${submissionId}/grade`, data),
   updateGrade: (submissionId, data) => api.put(`/assignments/submissions/${submissionId}/grade`, data),
   getGrade: (submissionId) => api.get(`/assignments/submissions/${submissionId}/grade`),
+
+  // File attachments
+  getAssignmentFiles: (assignmentId) => api.get(`/assignments/${assignmentId}/files`),
+  attachFileToAssignment: (assignmentId, file, fileType) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post(`/assignments/${assignmentId}/files`, formData, {
+      params: { file_type: fileType },
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  getSubmissionFiles: (submissionId) => api.get(`/assignments/submissions/${submissionId}/files`),
+  attachFileToSubmission: (submissionId, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post(`/assignments/submissions/${submissionId}/files`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
 };
 
 export default api;

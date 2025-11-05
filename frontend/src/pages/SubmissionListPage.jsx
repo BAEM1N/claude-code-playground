@@ -1,9 +1,10 @@
 /**
  * Submission List Page (Instructor/Assistant)
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import SubmissionList from '../components/assignments/SubmissionList';
+import AssignmentStatsDashboard from '../components/assignments/AssignmentStatsDashboard';
 import { useAssignment, useAssignmentStats } from '../hooks/useAssignments';
 
 const SubmissionListPage = () => {
@@ -11,6 +12,7 @@ const SubmissionListPage = () => {
   const navigate = useNavigate();
   const { assignment, loading: assignmentLoading } = useAssignment(assignmentId);
   const { stats, loading: statsLoading } = useAssignmentStats(assignmentId);
+  const [activeTab, setActiveTab] = useState('submissions');
 
   if (assignmentLoading) {
     return (
@@ -35,7 +37,7 @@ const SubmissionListPage = () => {
           {assignment?.title}
         </h1>
 
-        {/* Statistics */}
+        {/* Quick Statistics */}
         {!statsLoading && stats && (
           <div className="grid grid-cols-3 gap-4 mt-4">
             <div className="bg-blue-50 rounded-lg p-4">
@@ -60,8 +62,38 @@ const SubmissionListPage = () => {
         )}
       </div>
 
-      {/* Submission List */}
-      <SubmissionList assignmentId={assignmentId} />
+      {/* Tabs */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+        <div className="flex border-b border-gray-200">
+          <button
+            onClick={() => setActiveTab('submissions')}
+            className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+              activeTab === 'submissions'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            제출 목록
+          </button>
+          <button
+            onClick={() => setActiveTab('statistics')}
+            className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+              activeTab === 'statistics'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            상세 통계
+          </button>
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'submissions' ? (
+        <SubmissionList assignmentId={assignmentId} />
+      ) : (
+        <AssignmentStatsDashboard assignmentId={assignmentId} />
+      )}
     </div>
   );
 };

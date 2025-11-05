@@ -15,6 +15,10 @@ const GradingForm = ({ submission, onSuccess, onCancel }) => {
     is_released: false,
   });
 
+  // Rubric-based grading
+  const [rubricScores, setRubricScores] = useState({});
+  const hasRubric = submission?.assignment?.rubric && submission.assignment.rubric.criteria?.length > 0;
+
   useEffect(() => {
     if (submission?.grade) {
       setFormData({
@@ -25,13 +29,38 @@ const GradingForm = ({ submission, onSuccess, onCancel }) => {
         is_released: submission.grade.is_released,
       });
     }
-  }, [submission]);
+
+    // Initialize rubric scores if rubric exists
+    if (hasRubric) {
+      const initialScores = {};
+      submission.assignment.rubric.criteria.forEach(criterion => {
+        initialScores[criterion.id] = 0;
+      });
+      setRubricScores(initialScores);
+      setFormData(prev => ({ ...prev, max_points: submission.assignment.max_points }));
+    }
+  }, [submission, hasRubric]);
+
+  // Auto-calculate total points from rubric scores
+  useEffect(() => {
+    if (hasRubric && Object.keys(rubricScores).length > 0) {
+      const totalPoints = Object.values(rubricScores).reduce((sum, score) => sum + (parseFloat(score) || 0), 0);
+      setFormData(prev => ({ ...prev, points: totalPoints }));
+    }
+  }, [rubricScores, hasRubric]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : type === 'number' ? parseFloat(value) : value,
+    }));
+  };
+
+  const handleRubricScoreChange = (criterionId, value) => {
+    setRubricScores(prev => ({
+      ...prev,
+      [criterionId]: parseFloat(value) || 0
     }));
   };
 
@@ -72,40 +101,84 @@ const GradingForm = ({ submission, onSuccess, onCancel }) => {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Points */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              받은 점수 *
-            </label>
-            <input
-              type="number"
-              name="points"
-              value={formData.points}
-              onChange={handleChange}
-              required
-              min="0"
-              step="0.5"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
+        {/* Rubric-based Grading */}
+        {hasRubric ? (
+          <div className="space-y-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 className="text-sm font-medium text-blue-900 mb-2">채점 기준표 기반 채점</h4>
+              <p className="text-xs text-blue-700">
+                각 항목별로 점수를 입력하면 자동으로 합산됩니다.
+              </p>
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              만점 *
-            </label>
-            <input
-              type="number"
-              name="max_points"
-              value={formData.max_points}
-              onChange={handleChange}
-              required
-              min="0"
-              step="0.5"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+            {submission.assignment.rubric.criteria.map((criterion, index) => (
+              <div key={criterion.id} className="border border-gray-200 rounded-lg p-4">
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-gray-500">#{index + 1}</span>
+                      <h5 className="text-sm font-semibold text-gray-900">{criterion.name}</h5>
+                    </div>
+                    {criterion.description && (
+                      <p className="text-xs text-gray-600 mt-1">{criterion.description}</p>
+                    )}
+                  </div>
+                  <span className="text-xs text-gray-500 ml-4">
+                    최대 {criterion.max_points}점
+                  </span>
+                </div>
+
+                <div className="mt-3">
+                  <input
+                    type="number"
+                    value={rubricScores[criterion.id] || 0}
+                    onChange={(e) => handleRubricScoreChange(criterion.id, e.target.value)}
+                    min="0"
+                    max={criterion.max_points}
+                    step="0.5"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder={`0 ~ ${criterion.max_points}`}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
+        ) : (
+          /* Manual Points Entry */
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                받은 점수 *
+              </label>
+              <input
+                type="number"
+                name="points"
+                value={formData.points}
+                onChange={handleChange}
+                required
+                min="0"
+                step="0.5"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                만점 *
+              </label>
+              <input
+                type="number"
+                name="max_points"
+                value={formData.max_points}
+                onChange={handleChange}
+                required
+                min="0"
+                step="0.5"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Calculated Percentage */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">

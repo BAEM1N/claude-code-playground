@@ -7,6 +7,12 @@ from .channel import Channel, ChannelCreate, ChannelUpdate
 from .message import Message, MessageCreate, MessageUpdate, MessageReaction, Mention
 from .file import File, FileCreate, FileUpdate, Folder, FolderCreate, FileTag
 from .notification import Notification, NotificationCreate, Announcement, AnnouncementCreate
+from .assignment import (
+    Assignment, AssignmentCreate, AssignmentUpdate,
+    Submission, SubmissionCreate, SubmissionUpdate,
+    Grade, GradeCreate, GradeUpdate,
+    SubmissionWithGrade, AssignmentWithStats, StudentAssignmentStatus
+)
 
 __all__ = [
     "UserProfile",
@@ -35,4 +41,16 @@ __all__ = [
     "NotificationCreate",
     "Announcement",
     "AnnouncementCreate",
+    "Assignment",
+    "AssignmentCreate",
+    "AssignmentUpdate",
+    "Submission",
+    "SubmissionCreate",
+    "SubmissionUpdate",
+    "Grade",
+    "GradeCreate",
+    "GradeUpdate",
+    "SubmissionWithGrade",
+    "AssignmentWithStats",
+    "StudentAssignmentStatus",
 ]

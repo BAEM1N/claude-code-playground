@@ -7,6 +7,7 @@ from .channel import Channel
 from .message import Message, MessageReaction, Mention
 from .file import File, Folder, FileTag, MessageFile
 from .notification import Notification, Announcement
+from .assignment import Assignment, Submission, Grade, AssignmentFile, SubmissionFile
 
 __all__ = [
     "UserProfile",
@@ -22,4 +23,9 @@ __all__ = [
     "MessageFile",
     "Notification",
     "Announcement",
+    "Assignment",
+    "Submission",
+    "Grade",
+    "AssignmentFile",
+    "SubmissionFile",
 ]

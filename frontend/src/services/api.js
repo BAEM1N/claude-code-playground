@@ -106,4 +106,25 @@ export const notificationsAPI = {
   markAllAsRead: () => api.put('/notifications/read-all'),
 };
 
+// Assignments API
+export const assignmentsAPI = {
+  // Assignment management
+  getAssignments: (courseId, params) => api.get('/assignments', { params: { course_id: courseId, ...params } }),
+  getAssignment: (assignmentId) => api.get(`/assignments/${assignmentId}`),
+  createAssignment: (courseId, data) => api.post('/assignments', data, { params: { course_id: courseId } }),
+  updateAssignment: (assignmentId, data) => api.put(`/assignments/${assignmentId}`, data),
+  deleteAssignment: (assignmentId) => api.delete(`/assignments/${assignmentId}`),
+  getAssignmentStats: (assignmentId) => api.get(`/assignments/${assignmentId}/stats`),
+
+  // Submissions
+  submitAssignment: (assignmentId, data) => api.post(`/assignments/${assignmentId}/submissions`, data),
+  getSubmissions: (assignmentId) => api.get(`/assignments/${assignmentId}/submissions`),
+  getMySubmission: (assignmentId) => api.get(`/assignments/${assignmentId}/my-submission`),
+
+  // Grading
+  gradeSubmission: (submissionId, data) => api.post(`/assignments/submissions/${submissionId}/grade`, data),
+  updateGrade: (submissionId, data) => api.put(`/assignments/submissions/${submissionId}/grade`, data),
+  getGrade: (submissionId) => api.get(`/assignments/submissions/${submissionId}/grade`),
+};
+
 export default api;

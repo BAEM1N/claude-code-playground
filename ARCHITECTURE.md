@@ -327,6 +327,92 @@ CREATE TABLE announcements (
 CREATE INDEX idx_announcements_course ON announcements(course_id, created_at DESC);
 ```
 
+### Assignments (과제)
+```sql
+CREATE TABLE assignments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    course_id UUID REFERENCES courses(id) ON DELETE CASCADE,
+    created_by UUID REFERENCES user_profiles(id),
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    instructions TEXT,
+    start_date TIMESTAMP,
+    due_date TIMESTAMP NOT NULL,
+    late_submission_allowed BOOLEAN DEFAULT false,
+    late_penalty_percent INTEGER DEFAULT 0,
+    max_points FLOAT NOT NULL DEFAULT 100.0,
+    rubric JSON, -- 채점 기준
+    allow_resubmission BOOLEAN DEFAULT false,
+    show_solutions_after_due BOOLEAN DEFAULT false,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_published BOOLEAN DEFAULT false,
+    is_deleted BOOLEAN DEFAULT false
+);
+
+CREATE INDEX idx_assignments_course ON assignments(course_id, due_date DESC);
+```
+
+### Submissions (제출물)
+```sql
+CREATE TABLE submissions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    assignment_id UUID REFERENCES assignments(id) ON DELETE CASCADE,
+    student_id UUID REFERENCES user_profiles(id),
+    content TEXT,
+    submission_text TEXT,
+    submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_late BOOLEAN DEFAULT false,
+    attempt_number INTEGER DEFAULT 1,
+    status VARCHAR(20) DEFAULT 'submitted', -- submitted, graded, returned
+    is_deleted BOOLEAN DEFAULT false
+);
+
+CREATE INDEX idx_submissions_assignment ON submissions(assignment_id);
+CREATE INDEX idx_submissions_student ON submissions(student_id);
+```
+
+### Grades (평가/성적)
+```sql
+CREATE TABLE grades (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    submission_id UUID REFERENCES submissions(id) ON DELETE CASCADE UNIQUE,
+    graded_by UUID REFERENCES user_profiles(id),
+    points FLOAT NOT NULL,
+    max_points FLOAT NOT NULL,
+    percentage FLOAT,
+    letter_grade VARCHAR(5), -- A+, A, B+, etc.
+    feedback TEXT,
+    rubric_scores JSON, -- 세부 채점 내역
+    graded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_released BOOLEAN DEFAULT false
+);
+
+CREATE INDEX idx_grades_submission ON grades(submission_id);
+```
+
+### Assignment Files (과제 첨부 파일)
+```sql
+CREATE TABLE assignment_files (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    assignment_id UUID REFERENCES assignments(id) ON DELETE CASCADE,
+    file_id UUID REFERENCES files(id) ON DELETE CASCADE,
+    file_type VARCHAR(50) DEFAULT 'material', -- material, solution, rubric
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### Submission Files (제출 파일)
+```sql
+CREATE TABLE submission_files (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    submission_id UUID REFERENCES submissions(id) ON DELETE CASCADE,
+    file_id UUID REFERENCES files(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
 ## 🔌 API 엔드포인트 설계
 
 ### Authentication
@@ -381,6 +467,24 @@ CREATE INDEX idx_announcements_course ON announcements(course_id, created_at DES
 - `PUT /api/v1/notifications/{id}/read` - 알림 읽음 처리
 - `PUT /api/v1/notifications/read-all` - 모든 알림 읽음 처리
 
+### Assignments
+- `GET /api/v1/assignments?course_id={id}` - 과제 목록
+- `POST /api/v1/assignments` - 과제 생성
+- `GET /api/v1/assignments/{id}` - 과제 상세
+- `PUT /api/v1/assignments/{id}` - 과제 수정
+- `DELETE /api/v1/assignments/{id}` - 과제 삭제
+- `GET /api/v1/assignments/{id}/stats` - 과제 통계 (제출/채점 현황)
+
+### Submissions
+- `POST /api/v1/assignments/{id}/submissions` - 과제 제출
+- `GET /api/v1/assignments/{id}/submissions` - 제출 목록 (교수/조교)
+- `GET /api/v1/assignments/{id}/my-submission` - 내 제출 확인
+
+### Grading
+- `POST /api/v1/assignments/submissions/{id}/grade` - 채점하기
+- `PUT /api/v1/assignments/submissions/{id}/grade` - 채점 수정
+- `GET /api/v1/assignments/submissions/{id}/grade` - 채점 결과 조회
+
 ### WebSocket
 - `WS /ws/{course_id}` - 강좌별 실시간 통신
 
@@ -403,6 +507,11 @@ CREATE INDEX idx_announcements_course ON announcements(course_id, created_at DES
 | 파일 다운로드 | ✅ | ✅ | ✅ |
 | 공지 작성 | ✅ | ✅ | ❌ |
 | 멤버 관리 | ✅ | ✅ | ❌ |
+| 과제 생성/수정/삭제 | ✅ | ✅ | ❌ |
+| 과제 제출 | ✅ | ✅ | ✅ |
+| 과제 채점 | ✅ | ✅ | ❌ |
+| 채점 결과 조회 (본인) | ✅ | ✅ | ✅ (공개된 것만) |
+| 채점 결과 조회 (전체) | ✅ | ✅ | ❌ |
 
 ## 🚀 실시간 기능 (WebSocket)
 

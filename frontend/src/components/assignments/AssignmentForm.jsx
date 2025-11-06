@@ -4,6 +4,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { assignmentsAPI } from '../../services/api';
+import { ErrorAlert } from '../common/ErrorAlert';
+import { formatDateForInput } from '../../utils/formatters';
 import FileUpload from '../common/FileUpload';
 import FileList from '../common/FileList';
 import RubricEditor from './RubricEditor';
@@ -39,8 +41,8 @@ const AssignmentForm = ({ courseId, assignmentId, initialData }) => {
     if (initialData) {
       setFormData({
         ...initialData,
-        due_date: initialData.due_date ? new Date(initialData.due_date).toISOString().slice(0, 16) : '',
-        start_date: initialData.start_date ? new Date(initialData.start_date).toISOString().slice(0, 16) : '',
+        due_date: formatDateForInput(initialData.due_date),
+        start_date: formatDateForInput(initialData.start_date),
       });
     }
   }, [initialData]);
@@ -141,11 +143,7 @@ const AssignmentForm = ({ courseId, assignmentId, initialData }) => {
           {assignmentId ? '과제 수정' : '새 과제 만들기'}
         </h2>
 
-        {error && (
-          <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-red-800">{error}</p>
-          </div>
-        )}
+        {error && <ErrorAlert message={error} />}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Title */}

@@ -3,6 +3,8 @@
  */
 import React, { useState, useEffect } from 'react';
 import { assignmentsAPI } from '../../services/api';
+import { ErrorAlert } from '../common/ErrorAlert';
+import { formatPercentage } from '../../utils/formatters';
 
 const GradingForm = ({ submission, onSuccess, onCancel }) => {
   const [loading, setLoading] = useState(false);
@@ -64,11 +66,6 @@ const GradingForm = ({ submission, onSuccess, onCancel }) => {
     }));
   };
 
-  const calculatePercentage = () => {
-    if (formData.max_points === 0) return 0;
-    return ((formData.points / formData.max_points) * 100).toFixed(1);
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -94,11 +91,7 @@ const GradingForm = ({ submission, onSuccess, onCancel }) => {
         {submission.grade ? '채점 수정' : '채점하기'}
       </h3>
 
-      {error && (
-        <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-800">{error}</p>
-        </div>
-      )}
+      {error && <ErrorAlert message={error} />}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Rubric-based Grading */}
@@ -185,7 +178,7 @@ const GradingForm = ({ submission, onSuccess, onCancel }) => {
           <div className="flex justify-between items-center">
             <span className="text-blue-800 font-medium">백분율:</span>
             <span className="text-2xl font-bold text-blue-900">
-              {calculatePercentage()}%
+              {formatPercentage(formData.points / formData.max_points)}
             </span>
           </div>
         </div>

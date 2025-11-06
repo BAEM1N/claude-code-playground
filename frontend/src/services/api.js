@@ -1,13 +1,14 @@
 /**
  * API service for backend communication
+ * Refactored to use API factory pattern for reduced code duplication
  */
 import axios from 'axios';
-
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+import { API_URL } from '../config/config';
+import { createCRUDAPI, createAPIService } from './apiFactory';
 
 // Create axios instance
 const api = axios.create({
-  baseURL: `${API_URL}/api/v1`,
+  baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -45,36 +46,31 @@ export const authAPI = {
   updateProfile: (data) => api.put('/auth/profile', data),
 };
 
-// Courses API
-export const coursesAPI = {
+// Courses API - Using factory pattern
+export const coursesAPI = createAPIService('/courses', {
+  // Standard CRUD methods (getAll, getOne, create, update, delete) are automatically provided
   getMyCourses: (params) => api.get('/courses', { params }),
-  getCourse: (courseId) => api.get(`/courses/${courseId}`),
-  createCourse: (data) => api.post('/courses', data),
-  updateCourse: (courseId, data) => api.put(`/courses/${courseId}`, data),
-  deleteCourse: (courseId) => api.delete(`/courses/${courseId}`),
   getMembers: (courseId) => api.get(`/courses/${courseId}/members`),
   addMember: (courseId, data) => api.post(`/courses/${courseId}/members`, data),
   removeMember: (courseId, userId) => api.delete(`/courses/${courseId}/members/${userId}`),
-};
+});
 
-// Channels API
-export const channelsAPI = {
+// Channels API - Using factory pattern
+export const channelsAPI = createAPIService('/channels', {
+  // Standard CRUD provided: getAll, getOne, create, update, delete
   getChannels: (courseId) => api.get('/channels', { params: { course_id: courseId } }),
-  getChannel: (channelId) => api.get(`/channels/${channelId}`),
   createChannel: (courseId, data) => api.post('/channels', data, { params: { course_id: courseId } }),
-  updateChannel: (channelId, data) => api.put(`/channels/${channelId}`, data),
-};
+});
 
-// Messages API
-export const messagesAPI = {
+// Messages API - Using factory pattern
+export const messagesAPI = createAPIService('/messages', {
+  // Standard CRUD provided
   getMessages: (channelId, params) => api.get('/messages', { params: { channel_id: channelId, ...params } }),
   createMessage: (channelId, data) => api.post('/messages', data, { params: { channel_id: channelId } }),
-  updateMessage: (messageId, data) => api.put(`/messages/${messageId}`, data),
-  deleteMessage: (messageId) => api.delete(`/messages/${messageId}`),
   getThread: (messageId) => api.get(`/messages/${messageId}/thread`),
   addReaction: (messageId, emoji) => api.post(`/messages/${messageId}/reactions`, null, { params: { emoji } }),
   removeReaction: (messageId, emoji) => api.delete(`/messages/${messageId}/reactions/${emoji}`),
-};
+});
 
 // Files API
 export const filesAPI = {
@@ -98,13 +94,14 @@ export const filesAPI = {
   createFolder: (courseId, data) => api.post('/files/folders', data, { params: { course_id: courseId } }),
 };
 
-// Notifications API
-export const notificationsAPI = {
+// Notifications API - Using factory pattern
+export const notificationsAPI = createAPIService('/notifications', {
+  // Standard CRUD provided
   getNotifications: (params) => api.get('/notifications', { params }),
   getUnreadCount: () => api.get('/notifications/unread-count'),
   markAsRead: (notificationId) => api.put(`/notifications/${notificationId}/read`),
   markAllAsRead: () => api.put('/notifications/read-all'),
-};
+});
 
 // Assignments API
 export const assignmentsAPI = {
@@ -146,16 +143,12 @@ export const assignmentsAPI = {
   },
 };
 
-// Attendance API
-export const attendanceAPI = {
-  // Session management (Instructor/Assistant)
-  createSession: (data) => api.post('/attendance/sessions', data),
+// Attendance API - Using factory pattern
+export const attendanceAPI = createAPIService('/attendance/sessions', {
+  // Standard CRUD for sessions provided: getAll, getOne, create, update, delete
   getSessions: (courseId, params) => api.get('/attendance/sessions', {
     params: { course_id: courseId, ...params }
   }),
-  getSession: (sessionId) => api.get(`/attendance/sessions/${sessionId}`),
-  updateSession: (sessionId, data) => api.put(`/attendance/sessions/${sessionId}`, data),
-  deleteSession: (sessionId) => api.delete(`/attendance/sessions/${sessionId}`),
 
   // Student check-in
   checkIn: (data) => api.post('/attendance/checkin', data),
@@ -167,18 +160,15 @@ export const attendanceAPI = {
   getMyRecords: (courseId) => api.get('/attendance/my-records', {
     params: { course_id: courseId }
   }),
-};
+  getSessionQRCode: (sessionId) => api.get(`/attendance/sessions/${sessionId}/qr`),
+});
 
-// Quiz API
-export const quizAPI = {
-  // Quiz management
+// Quiz API - Using factory pattern
+export const quizAPI = createAPIService('/quiz/quizzes', {
+  // Standard CRUD for quizzes provided: getAll, getOne, create, update, delete
   getQuizzes: (courseId, params) => api.get('/quiz/quizzes', {
     params: { course_id: courseId, ...params }
   }),
-  getQuiz: (quizId) => api.get(`/quiz/quizzes/${quizId}`),
-  createQuiz: (data) => api.post('/quiz/quizzes', data),
-  updateQuiz: (quizId, data) => api.put(`/quiz/quizzes/${quizId}`, data),
-  deleteQuiz: (quizId) => api.delete(`/quiz/quizzes/${quizId}`),
 
   // Question management
   getQuestions: (quizId) => api.get(`/quiz/quizzes/${quizId}/questions`),
@@ -191,15 +181,17 @@ export const quizAPI = {
   submitQuiz: (attemptId, data) => api.post(`/quiz/attempts/${attemptId}/submit`, data),
   trackBehavior: (attemptId, data) => api.patch(`/quiz/attempts/${attemptId}/track`, data),
   getAttempt: (attemptId) => api.get(`/quiz/attempts/${attemptId}`),
+  getAttemptAnswers: (attemptId) => api.get(`/quiz/attempts/${attemptId}/answers`),
   getAttempts: (quizId) => api.get(`/quiz/quizzes/${quizId}/attempts`),
 
   // Grading
   gradeAnswer: (answerId, data) => api.post(`/quiz/answers/${answerId}/grade`, data),
   getStatistics: (quizId) => api.get(`/quiz/quizzes/${quizId}/statistics`),
-};
+});
 
-// Progress API
-export const progressAPI = {
+// Progress API - Using factory pattern
+export const progressAPI = createAPIService('/progress/milestones', {
+  // Standard CRUD for milestones provided: getAll, getOne, create, update, delete
   // Progress tracking
   getMyProgress: (courseId) => api.get('/progress/progress', {
     params: { course_id: courseId }
@@ -219,9 +211,6 @@ export const progressAPI = {
   getMilestones: (courseId) => api.get('/progress/milestones', {
     params: { course_id: courseId }
   }),
-  createMilestone: (data) => api.post('/progress/milestones', data),
-  updateMilestone: (milestoneId, data) => api.put(`/progress/milestones/${milestoneId}`, data),
-  deleteMilestone: (milestoneId) => api.delete(`/progress/milestones/${milestoneId}`),
 
   // Leaderboard
   getLeaderboard: (courseId, limit = 10) => api.get(`/progress/leaderboard/${courseId}`, {
@@ -230,17 +219,11 @@ export const progressAPI = {
 
   // Statistics
   getStatistics: (courseId) => api.get(`/progress/statistics/${courseId}`),
-};
+});
 
-// Calendar API
-export const calendarAPI = {
-  // Course events
-  getEvents: (params) => api.get('/calendar/events', { params }),
-  getEvent: (eventId) => api.get(`/calendar/events/${eventId}`),
-  createEvent: (data) => api.post('/calendar/events', data),
-  updateEvent: (eventId, data) => api.put(`/calendar/events/${eventId}`, data),
-  deleteEvent: (eventId) => api.delete(`/calendar/events/${eventId}`),
-
+// Calendar API - Using factory pattern
+export const calendarAPI = createAPIService('/calendar/events', {
+  // Standard CRUD for events provided: getAll, getOne, create, update, delete
   // Personal events
   getPersonalEvents: (params) => api.get('/calendar/personal-events', { params }),
   createPersonalEvent: (data) => api.post('/calendar/personal-events', data),
@@ -259,6 +242,6 @@ export const calendarAPI = {
     params,
     responseType: 'blob'
   }),
-};
+});
 
 export default api;

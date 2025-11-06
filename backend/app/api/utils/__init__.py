@@ -7,6 +7,7 @@ from .db_helpers import (
     bulk_soft_delete,
     check_exists,
 )
+from .crud_base import CRUDBase
 
 __all__ = [
     "get_or_404",
@@ -15,4 +16,5 @@ __all__ = [
     "soft_delete",
     "bulk_soft_delete",
     "check_exists",
+    "CRUDBase",
 ]

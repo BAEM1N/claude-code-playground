@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     PORT: int = 8000
 
     # Database
+    # Default: SQLite for development. Use PostgreSQL in production (set via environment variable)
     DATABASE_URL: str = "sqlite+aiosqlite:///./app.db"
 
     # Supabase
@@ -33,15 +34,17 @@ class Settings(BaseSettings):
     REDIS_DB: int = 0
     REDIS_PASSWORD: str = ""
 
-    # MinIO
+    # MinIO (Object Storage)
+    # IMPORTANT: These credentials MUST be set via environment variables in production
     MINIO_ENDPOINT: str = "localhost:9000"
-    MINIO_ACCESS_KEY: str = "minioadmin"
-    MINIO_SECRET_KEY: str = "minioadmin"
+    MINIO_ACCESS_KEY: str  # Required - no default for security
+    MINIO_SECRET_KEY: str  # Required - no default for security
     MINIO_BUCKET_NAME: str = "course-files"
     MINIO_SECURE: bool = False
 
     # CORS
-    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:5173"]
+    # Set via environment variable (comma-separated): CORS_ORIGINS="http://example.com,http://app.example.com"
+    CORS_ORIGINS: List[str] = []
 
     @validator("CORS_ORIGINS", pre=True)
     def assemble_cors_origins(cls, v):
@@ -50,7 +53,9 @@ class Settings(BaseSettings):
         return v
 
     # Security
-    SECRET_KEY: str = "your-secret-key-change-this-in-production"
+    # CRITICAL: SECRET_KEY MUST be set via environment variable
+    # Generate a secure key: openssl rand -hex 32
+    SECRET_KEY: str  # Required - no default for security
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 

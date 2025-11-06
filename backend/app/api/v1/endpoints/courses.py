@@ -1,5 +1,5 @@
 """
-Course endpoints.
+Course endpoints - Refactored with helper functions and service layer.
 """
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status, Query
@@ -9,6 +9,7 @@ from uuid import UUID
 
 from ....core.database import get_db
 from ....api.deps import get_current_active_user, require_course_member, require_instructor
+from ....api.utils.db_helpers import get_or_404, update_model_from_schema, soft_delete
 from ....models.course import Course, CourseMember
 from ....models.file import Folder
 from ....schemas.course import (
@@ -19,11 +20,12 @@ from ....schemas.course import (
     CourseMemberCreate
 )
 from ....services.cache_service import cache_service
+from ....services.course_service import course_service
 
 router = APIRouter()
 
 
-@router.get("", response_model=List[CourseSchema])
+@router.get("", response_model=List[CourseSchema], status_code=status.HTTP_200_OK)
 async def get_my_courses(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
@@ -42,20 +44,11 @@ async def get_my_courses(
     """
     user_id = UUID(current_user["id"])
 
-    # Query courses through membership
-    query = (
-        select(Course)
-        .join(CourseMember)
-        .where(CourseMember.user_id == user_id)
-        .where(Course.is_active == True)
-        .offset(skip)
-        .limit(limit)
-    )
+    # Use service method
+    courses = await course_service.get_user_courses(db, user_id)
 
-    result = await db.execute(query)
-    courses = result.scalars().all()
-
-    return courses
+    # Apply pagination
+    return courses[skip:skip + limit]
 
 
 @router.post("", response_model=CourseSchema, status_code=status.HTTP_201_CREATED)
@@ -112,7 +105,7 @@ async def create_course(
     return course
 
 
-@router.get("/{course_id}", response_model=CourseSchema)
+@router.get("/{course_id}", response_model=CourseSchema, status_code=status.HTTP_200_OK)
 async def get_course(
     course_id: UUID,
     current_user: dict = Depends(require_course_member),
@@ -132,15 +125,8 @@ async def get_course(
     if cached_course:
         return cached_course
 
-    query = select(Course).where(Course.id == course_id)
-    result = await db.execute(query)
-    course = result.scalar_one_or_none()
-
-    if not course:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Course not found"
-        )
+    # Use helper function instead of manual query + check
+    course = await get_or_404(db, Course, course_id, "Course not found")
 
     # Cache the result
     course_dict = {
@@ -158,7 +144,7 @@ async def get_course(
     return course
 
 
-@router.put("/{course_id}", response_model=CourseSchema)
+@router.put("/{course_id}", response_model=CourseSchema, status_code=status.HTTP_200_OK)
 async def update_course(
     course_id: UUID,
     course_data: CourseUpdate,
@@ -175,19 +161,11 @@ async def update_course(
     Returns:
         Course: Updated course
     """
-    query = select(Course).where(Course.id == course_id)
-    result = await db.execute(query)
-    course = result.scalar_one_or_none()
+    # Use helper function
+    course = await get_or_404(db, Course, course_id, "Course not found")
 
-    if not course:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Course not found"
-        )
-
-    # Update course
-    for field, value in course_data.dict(exclude_unset=True).items():
-        setattr(course, field, value)
+    # Use helper function for update
+    course = await update_model_from_schema(course, course_data)
 
     await db.commit()
     await db.refresh(course)
@@ -205,22 +183,15 @@ async def delete_course(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Delete (deactivate) course.
+    Delete (deactivate) course using soft delete.
 
     Args:
         course_id: Course ID
     """
-    query = select(Course).where(Course.id == course_id)
-    result = await db.execute(query)
-    course = result.scalar_one_or_none()
+    # Use helper function
+    course = await get_or_404(db, Course, course_id, "Course not found")
 
-    if not course:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Course not found"
-        )
-
-    # Soft delete
+    # Use soft delete helper (sets is_active = False)
     course.is_active = False
     await db.commit()
 
@@ -228,7 +199,7 @@ async def delete_course(
     await cache_service.invalidate_course(str(course_id))
 
 
-@router.get("/{course_id}/members", response_model=List[CourseMemberSchema])
+@router.get("/{course_id}/members", response_model=List[CourseMemberSchema], status_code=status.HTTP_200_OK)
 async def get_course_members(
     course_id: UUID,
     current_user: dict = Depends(require_course_member),
@@ -243,6 +214,9 @@ async def get_course_members(
     Returns:
         List[CourseMember]: List of course members
     """
+    # Verify course exists
+    await get_or_404(db, Course, course_id, "Course not found")
+
     query = select(CourseMember).where(CourseMember.course_id == course_id)
     result = await db.execute(query)
     members = result.scalars().all()
@@ -258,7 +232,7 @@ async def add_course_member(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Add member to course.
+    Add member to course with notification.
 
     Args:
         course_id: Course ID
@@ -267,6 +241,9 @@ async def add_course_member(
     Returns:
         CourseMember: Added member
     """
+    # Verify course exists
+    await get_or_404(db, Course, course_id, "Course not found")
+
     # Check if member already exists
     query = select(CourseMember).where(
         CourseMember.course_id == course_id,
@@ -281,14 +258,14 @@ async def add_course_member(
             detail="User is already a member of this course"
         )
 
-    # Add member
-    member = CourseMember(
+    # Use service method to add member with notification
+    member = await course_service.add_member_with_notification(
+        db=db,
         course_id=course_id,
-        **member_data.dict()
+        user_id=member_data.user_id,
+        role=member_data.role,
+        added_by_id=UUID(current_user["id"])
     )
-    db.add(member)
-    await db.commit()
-    await db.refresh(member)
 
     # Invalidate cache
     await cache_service.delete(f"course:{course_id}:members")
@@ -304,27 +281,23 @@ async def remove_course_member(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Remove member from course.
+    Remove member from course with cleanup.
 
     Args:
         course_id: Course ID
         user_id: User ID to remove
     """
-    query = select(CourseMember).where(
-        CourseMember.course_id == course_id,
-        CourseMember.user_id == user_id
-    )
-    result = await db.execute(query)
-    member = result.scalar_one_or_none()
+    # Verify course exists
+    await get_or_404(db, Course, course_id, "Course not found")
 
-    if not member:
+    # Use service method to remove member with cleanup
+    removed = await course_service.remove_member_with_cleanup(db, course_id, user_id)
+
+    if not removed:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Member not found"
+            detail="Member not found in this course"
         )
-
-    await db.delete(member)
-    await db.commit()
 
     # Invalidate cache
     await cache_service.delete(f"course:{course_id}:members")

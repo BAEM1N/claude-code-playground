@@ -1,5 +1,5 @@
 """
-Channel endpoints.
+Channel endpoints - Refactored with helper functions.
 """
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status, Query
@@ -9,13 +9,14 @@ from uuid import UUID
 
 from ....core.database import get_db
 from ....api.deps import require_course_member, require_instructor_or_assistant
+from ....api.utils.db_helpers import get_or_404, update_model_from_schema
 from ....models.channel import Channel
 from ....schemas.channel import Channel as ChannelSchema, ChannelCreate, ChannelUpdate
 
 router = APIRouter()
 
 
-@router.get("", response_model=List[ChannelSchema])
+@router.get("", response_model=List[ChannelSchema], status_code=status.HTTP_200_OK)
 async def get_course_channels(
     course_id: UUID = Query(...),
     current_user: dict = Depends(require_course_member),
@@ -49,23 +50,18 @@ async def create_channel(
     return channel
 
 
-@router.get("/{channel_id}", response_model=ChannelSchema)
+@router.get("/{channel_id}", response_model=ChannelSchema, status_code=status.HTTP_200_OK)
 async def get_channel(
     channel_id: UUID,
     db: AsyncSession = Depends(get_db)
 ):
     """Get channel details."""
-    query = select(Channel).where(Channel.id == channel_id)
-    result = await db.execute(query)
-    channel = result.scalar_one_or_none()
-
-    if not channel:
-        raise HTTPException(status_code=404, detail="Channel not found")
-
+    # Use helper function
+    channel = await get_or_404(db, Channel, channel_id, "Channel not found")
     return channel
 
 
-@router.put("/{channel_id}", response_model=ChannelSchema)
+@router.put("/{channel_id}", response_model=ChannelSchema, status_code=status.HTTP_200_OK)
 async def update_channel(
     channel_id: UUID,
     channel_data: ChannelUpdate,
@@ -73,15 +69,9 @@ async def update_channel(
     db: AsyncSession = Depends(get_db)
 ):
     """Update channel."""
-    query = select(Channel).where(Channel.id == channel_id)
-    result = await db.execute(query)
-    channel = result.scalar_one_or_none()
-
-    if not channel:
-        raise HTTPException(status_code=404, detail="Channel not found")
-
-    for field, value in channel_data.dict(exclude_unset=True).items():
-        setattr(channel, field, value)
+    # Use helper functions
+    channel = await get_or_404(db, Channel, channel_id, "Channel not found")
+    channel = await update_model_from_schema(channel, channel_data)
 
     await db.commit()
     await db.refresh(channel)

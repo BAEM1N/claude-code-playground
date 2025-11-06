@@ -1,8 +1,8 @@
 """
-File endpoints.
+File endpoints - Refactored with helper functions and service layer.
 """
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File as FastAPIFile
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File as FastAPIFile, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -11,6 +11,7 @@ import io
 
 from ....core.database import get_db
 from ....api.deps import get_current_active_user, require_course_member
+from ....api.utils.db_helpers import get_or_404, soft_delete
 from ....models.file import File, Folder, FileTag
 from ....schemas.file import (
     File as FileSchema,
@@ -18,12 +19,14 @@ from ....schemas.file import (
     FolderCreate
 )
 from ....services.storage_service import storage_service
+from ....services.file_service import file_service
 
 router = APIRouter()
 
 
-# Folder endpoints
-@router.get("/folders", response_model=List[FolderSchema])
+# ==================== Folder Endpoints ====================
+
+@router.get("/folders", response_model=List[FolderSchema], status_code=status.HTTP_200_OK)
 async def get_course_folders(
     course_id: UUID = Query(...),
     current_user: dict = Depends(require_course_member),
@@ -38,7 +41,7 @@ async def get_course_folders(
     return result.scalars().all()
 
 
-@router.post("/folders", response_model=FolderSchema, status_code=201)
+@router.post("/folders", response_model=FolderSchema, status_code=status.HTTP_201_CREATED)
 async def create_folder(
     course_id: UUID = Query(...),
     folder_data: FolderCreate = ...,
@@ -57,8 +60,9 @@ async def create_folder(
     return folder
 
 
-# File endpoints
-@router.get("", response_model=List[FileSchema])
+# ==================== File Endpoints ====================
+
+@router.get("", response_model=List[FileSchema], status_code=status.HTTP_200_OK)
 async def get_course_files(
     course_id: UUID = Query(...),
     folder_id: UUID = Query(None),
@@ -82,7 +86,7 @@ async def get_course_files(
     return result.scalars().all()
 
 
-@router.post("", response_model=FileSchema, status_code=201)
+@router.post("", response_model=FileSchema, status_code=status.HTTP_201_CREATED)
 async def upload_file(
     course_id: UUID = Query(...),
     folder_id: UUID = Query(None),
@@ -90,48 +94,36 @@ async def upload_file(
     current_user: dict = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Upload a file."""
-    # Upload to MinIO
-    file_path = storage_service.upload_file(
-        file.file,
-        file.filename,
-        str(course_id),
-        folder="shared",
-        content_type=file.content_type
-    )
+    """
+    Upload a file using FileService.
 
-    # Create database record
-    db_file = File(
+    Returns:
+        File: Created file record
+    """
+    # Use FileService for centralized file handling
+    db_file = await file_service.create_and_upload_file(
+        db=db,
+        file=file,
         course_id=course_id,
-        folder_id=folder_id,
         uploaded_by=UUID(current_user["id"]),
-        original_name=file.filename,
-        stored_name=file_path.split("/")[-1],
-        file_path=file_path,
-        file_size=file.size,
-        mime_type=file.content_type
+        folder="shared",
+        folder_id=folder_id
     )
 
-    db.add(db_file)
     await db.commit()
     await db.refresh(db_file)
 
     return db_file
 
 
-@router.get("/{file_id}", response_model=FileSchema)
+@router.get("/{file_id}", response_model=FileSchema, status_code=status.HTTP_200_OK)
 async def get_file(
     file_id: UUID,
     db: AsyncSession = Depends(get_db)
 ):
     """Get file details."""
-    query = select(File).where(File.id == file_id)
-    result = await db.execute(query)
-    file = result.scalar_one_or_none()
-
-    if not file:
-        raise HTTPException(status_code=404, detail="File not found")
-
+    # Use helper function instead of manual query + check
+    file = await get_or_404(db, File, file_id, "File not found")
     return file
 
 
@@ -142,12 +134,8 @@ async def download_file(
     db: AsyncSession = Depends(get_db)
 ):
     """Download a file."""
-    query = select(File).where(File.id == file_id)
-    result = await db.execute(query)
-    file = result.scalar_one_or_none()
-
-    if not file:
-        raise HTTPException(status_code=404, detail="File not found")
+    # Use helper function
+    file = await get_or_404(db, File, file_id, "File not found")
 
     # Get file from MinIO
     file_data = storage_service.download_file(file.file_path)
@@ -161,19 +149,15 @@ async def download_file(
     )
 
 
-@router.get("/{file_id}/preview")
+@router.get("/{file_id}/preview", status_code=status.HTTP_200_OK)
 async def get_file_preview_url(
     file_id: UUID,
     current_user: dict = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Get presigned URL for file preview."""
-    query = select(File).where(File.id == file_id)
-    result = await db.execute(query)
-    file = result.scalar_one_or_none()
-
-    if not file:
-        raise HTTPException(status_code=404, detail="File not found")
+    # Use helper function
+    file = await get_or_404(db, File, file_id, "File not found")
 
     # Get presigned URL
     url = storage_service.get_presigned_url(file.file_path)
@@ -181,30 +165,29 @@ async def get_file_preview_url(
     return {"url": url}
 
 
-@router.delete("/{file_id}", status_code=204)
+@router.delete("/{file_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_file(
     file_id: UUID,
     current_user: dict = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Delete file (soft delete)."""
-    query = select(File).where(File.id == file_id)
-    result = await db.execute(query)
-    file = result.scalar_one_or_none()
+    """Delete file using soft delete."""
+    # Use helper function
+    file = await get_or_404(db, File, file_id, "File not found")
 
-    if not file:
-        raise HTTPException(status_code=404, detail="File not found")
-
-    file.is_deleted = True
-    await db.commit()
+    # Use soft delete helper
+    await soft_delete(db, file)
 
 
-@router.get("/{file_id}/versions", response_model=List[FileSchema])
+@router.get("/{file_id}/versions", response_model=List[FileSchema], status_code=status.HTTP_200_OK)
 async def get_file_versions(
     file_id: UUID,
     db: AsyncSession = Depends(get_db)
 ):
     """Get all versions of a file."""
+    # Verify parent file exists
+    await get_or_404(db, File, file_id, "File not found")
+
     query = (
         select(File)
         .where(File.parent_file_id == file_id)
@@ -215,7 +198,7 @@ async def get_file_versions(
     return result.scalars().all()
 
 
-@router.post("/{file_id}/tags", status_code=201)
+@router.post("/{file_id}/tags", status_code=status.HTTP_201_CREATED)
 async def add_file_tag(
     file_id: UUID,
     tag: str = Query(...),
@@ -223,6 +206,9 @@ async def add_file_tag(
     db: AsyncSession = Depends(get_db)
 ):
     """Add tag to file."""
+    # Verify file exists
+    await get_or_404(db, File, file_id, "File not found")
+
     file_tag = FileTag(
         file_id=file_id,
         tag=tag
@@ -231,7 +217,10 @@ async def add_file_tag(
 
     try:
         await db.commit()
-        return {"message": "Tag added"}
+        return {"message": "Tag added successfully"}
     except Exception:
         await db.rollback()
-        raise HTTPException(status_code=400, detail="Tag already exists")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Tag already exists or invalid"
+        )

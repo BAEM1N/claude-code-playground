@@ -2,16 +2,9 @@
  * File List Display Component
  */
 import React from 'react';
+import { formatFileSize, formatDate } from '../../utils/formatters';
 
 const FileList = ({ files = [], onDelete = null, showDelete = false }) => {
-  const formatFileSize = (bytes) => {
-    if (!bytes || bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
-  };
-
   const getFileIcon = (mimeType) => {
     if (!mimeType) return 'document';
 
@@ -108,7 +101,7 @@ const FileList = ({ files = [], onDelete = null, showDelete = false }) => {
                 {file.created_at && (
                   <>
                     <span>•</span>
-                    <span>{new Date(file.created_at).toLocaleDateString('ko-KR')}</span>
+                    <span>{formatDate(file.created_at)}</span>
                   </>
                 )}
               </div>

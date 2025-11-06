@@ -3,6 +3,7 @@
  */
 import React, { useState } from 'react';
 import { assignmentsAPI } from '../../services/api';
+import { ErrorAlert } from '../common/ErrorAlert';
 import FileUpload from '../common/FileUpload';
 
 const SubmissionForm = ({ assignmentId, onSuccess, onCancel }) => {
@@ -61,11 +62,7 @@ const SubmissionForm = ({ assignmentId, onSuccess, onCancel }) => {
     <form onSubmit={handleSubmit} className="space-y-4">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">과제 제출</h3>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-800">{error}</p>
-        </div>
-      )}
+      {error && <ErrorAlert message={error} />}
 
       {/* Main Content */}
       <div>

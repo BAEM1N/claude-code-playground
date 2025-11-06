@@ -5,6 +5,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAssignment, useMySubmission } from '../../hooks/useAssignments';
 import SubmissionForm from './SubmissionForm';
+import { LoadingSpinner } from '../common/LoadingSpinner';
+import { formatDateTime } from '../../utils/formatters';
 
 const AssignmentDetail = ({ assignmentId, courseId, role }) => {
   const navigate = useNavigate();
@@ -14,17 +16,6 @@ const AssignmentDetail = ({ assignmentId, courseId, role }) => {
 
   const isStudent = role === 'student';
   const isInstructor = role === 'instructor' || role === 'assistant';
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
 
   const isOverdue = (dueDate) => {
     return new Date(dueDate) < new Date();
@@ -41,11 +32,7 @@ const AssignmentDetail = ({ assignmentId, courseId, role }) => {
   };
 
   if (assignmentLoading || submissionLoading) {
-    return (
-      <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    return <LoadingSpinner message="과제 정보 로딩 중..." />;
   }
 
   if (!assignment) {
@@ -69,7 +56,7 @@ const AssignmentDetail = ({ assignmentId, courseId, role }) => {
               <div className="flex items-center gap-1">
                 <span className="text-gray-500">마감:</span>
                 <span className={`font-medium ${isOverdue(assignment.due_date) ? 'text-red-600' : 'text-gray-900'}`}>
-                  {formatDate(assignment.due_date)}
+                  {formatDateTime(assignment.due_date)}
                 </span>
               </div>
               <div className="flex items-center gap-1">
@@ -148,7 +135,7 @@ const AssignmentDetail = ({ assignmentId, courseId, role }) => {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-gray-500">제출 시간:</span>
-                    <span className="ml-2 font-medium">{formatDate(submission.submitted_at)}</span>
+                    <span className="ml-2 font-medium">{formatDateTime(submission.submitted_at)}</span>
                   </div>
                   <div>
                     <span className="text-gray-500">상태:</span>

@@ -4,22 +4,14 @@
 import React, { useState } from 'react';
 import { useSubmissions } from '../../hooks/useAssignments';
 import GradingForm from './GradingForm';
+import { LoadingSpinner } from '../common/LoadingSpinner';
+import { ErrorAlert } from '../common/ErrorAlert';
+import { formatDateTime } from '../../utils/formatters';
 
 const SubmissionList = ({ assignmentId }) => {
   const { submissions, loading, error, refetch } = useSubmissions(assignmentId);
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [showGradingForm, setShowGradingForm] = useState(false);
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
 
   const getStatusBadge = (submission) => {
     if (submission.grade && submission.grade.is_released) {
@@ -55,19 +47,11 @@ const SubmissionList = ({ assignmentId }) => {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    return <LoadingSpinner message="제출 현황 로딩 중..." />;
   }
 
   if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <p className="text-red-800">오류: {error}</p>
-      </div>
-    );
+    return <ErrorAlert message={error} />;
   }
 
   return (
@@ -100,7 +84,7 @@ const SubmissionList = ({ assignmentId }) => {
                   </div>
                 )}
                 <div className="mt-2 pt-2 border-t border-gray-200 text-sm text-gray-600">
-                  제출 시간: {formatDate(selectedSubmission.submitted_at)}
+                  제출 시간: {formatDateTime(selectedSubmission.submitted_at)}
                 </div>
               </div>
 
@@ -160,7 +144,7 @@ const SubmissionList = ({ assignmentId }) => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
-                      {formatDate(submission.submitted_at)}
+                      {formatDateTime(submission.submitted_at)}
                     </div>
                     {submission.is_late && (
                       <div className="text-xs text-red-600">늦은 제출</div>

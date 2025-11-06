@@ -4,6 +4,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAssignments } from '../../hooks/useAssignments';
+import { LoadingSpinner } from '../common/LoadingSpinner';
+import { ErrorAlert } from '../common/ErrorAlert';
+import { formatDateTime } from '../../utils/formatters';
 
 const AssignmentList = ({ courseId, role }) => {
   const navigate = useNavigate();
@@ -14,35 +17,16 @@ const AssignmentList = ({ courseId, role }) => {
 
   const isInstructor = role === 'instructor' || role === 'assistant';
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
   const isOverdue = (dueDate) => {
     return new Date(dueDate) < new Date();
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    return <LoadingSpinner message="과제 목록 로딩 중..." />;
   }
 
   if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <p className="text-red-800">오류: {error}</p>
-      </div>
-    );
+    return <ErrorAlert message={error} />;
   }
 
   return (
@@ -102,7 +86,7 @@ const AssignmentList = ({ courseId, role }) => {
                             : 'text-gray-900'
                         }`}
                       >
-                        {formatDate(assignment.due_date)}
+                        {formatDateTime(assignment.due_date)}
                       </span>
                     </div>
 

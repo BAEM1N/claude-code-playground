@@ -3,27 +3,19 @@
  */
 import React from 'react';
 import { useAssignmentStats } from '../../hooks/useAssignments';
+import { LoadingSpinner } from '../common/LoadingSpinner';
+import { ErrorAlert } from '../common/ErrorAlert';
+import { formatPercentage } from '../../utils/formatters';
 
 const AssignmentStatsDashboard = ({ assignmentId }) => {
   const { stats, loading, error } = useAssignmentStats(assignmentId);
 
   if (loading) {
-    return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-          <div className="h-32 bg-gray-200 rounded"></div>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner message="통계 로딩 중..." />;
   }
 
   if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <p className="text-red-800">통계를 불러오는데 실패했습니다.</p>
-      </div>
-    );
+    return <ErrorAlert message="통계를 불러오는데 실패했습니다." />;
   }
 
   if (!stats) return null;
@@ -53,8 +45,8 @@ const AssignmentStatsDashboard = ({ assignmentId }) => {
   const totalStudents = stats.total_submissions || 0;
   const submittedCount = stats.submissions?.filter(s => s.submitted_at).length || 0;
   const gradedCount = stats.graded_count || 0;
-  const submissionRate = totalStudents > 0 ? (submittedCount / totalStudents * 100).toFixed(1) : 0;
-  const gradingRate = submittedCount > 0 ? (gradedCount / submittedCount * 100).toFixed(1) : 0;
+  const submissionRate = totalStudents > 0 ? formatPercentage(submittedCount / totalStudents, { multiply: true }) : '0.0%';
+  const gradingRate = submittedCount > 0 ? formatPercentage(gradedCount / submittedCount, { multiply: true }) : '0.0%';
 
   return (
     <div className="space-y-6">
@@ -65,7 +57,7 @@ const AssignmentStatsDashboard = ({ assignmentId }) => {
             <div>
               <p className="text-sm text-gray-600">전체 제출</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">{submittedCount}/{totalStudents}</p>
-              <p className="text-xs text-gray-500 mt-1">{submissionRate}%</p>
+              <p className="text-xs text-gray-500 mt-1">{submissionRate}</p>
             </div>
             <div className="p-3 bg-blue-100 rounded-full">
               <svg className="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -80,7 +72,7 @@ const AssignmentStatsDashboard = ({ assignmentId }) => {
             <div>
               <p className="text-sm text-gray-600">채점 완료</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">{gradedCount}/{submittedCount}</p>
-              <p className="text-xs text-gray-500 mt-1">{gradingRate}%</p>
+              <p className="text-xs text-gray-500 mt-1">{gradingRate}</p>
             </div>
             <div className="p-3 bg-green-100 rounded-full">
               <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -99,7 +91,7 @@ const AssignmentStatsDashboard = ({ assignmentId }) => {
               </p>
               <p className="text-xs text-gray-500 mt-1">
                 {stats.average_score && stats.submissions?.[0]?.assignment?.max_points
-                  ? `${((stats.average_score / stats.submissions[0].assignment.max_points) * 100).toFixed(1)}%`
+                  ? formatPercentage(stats.average_score / stats.submissions[0].assignment.max_points, { multiply: true })
                   : ''}
               </p>
             </div>
@@ -142,7 +134,7 @@ const AssignmentStatsDashboard = ({ assignmentId }) => {
         ) : (
           <div className="space-y-4">
             {Object.entries(gradeDistribution).map(([grade, count]) => {
-              const percentage = gradedCount > 0 ? (count / gradedCount * 100).toFixed(1) : 0;
+              const percentage = gradedCount > 0 ? formatPercentage(count / gradedCount, { multiply: true }) : '0.0%';
               const barWidth = maxCount > 0 ? (count / maxCount * 100) : 0;
 
               const gradeColors = {
@@ -159,7 +151,7 @@ const AssignmentStatsDashboard = ({ assignmentId }) => {
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold text-gray-700 w-8">{grade}</span>
                       <span className="text-xs text-gray-500">
-                        {count}명 ({percentage}%)
+                        {count}명 ({percentage})
                       </span>
                     </div>
                   </div>

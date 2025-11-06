@@ -51,24 +51,30 @@
 
 ## 🏗️ 기술 스택
 
-### Backend
-- **Framework**: FastAPI (Python)
-- **Database**: SQLite (개발) / PostgreSQL (운영)
-- **Cache**: Redis
-- **Storage**: MinIO (S3-compatible)
-- **Auth**: Supabase
-- **Real-time**: WebSocket
+### Backend (2025-11 최신 버전)
+- **Framework**: FastAPI 0.115.5 (Python 3.9+)
+- **Database**: SQLite (개발) / PostgreSQL (운영) - SQLAlchemy 2.0.44
+- **Cache**: Redis 7.0.1
+- **Storage**: MinIO 7.2.18 (S3-compatible)
+- **Auth**: Supabase 2.18.0
+- **Real-time**: WebSocket 15.0.1
+- **ORM**: SQLAlchemy 2.0.44 (async)
+- **Validation**: Pydantic 2.12.3
+- **Migration**: Alembic 1.17.1
 
-### Frontend
-- **Framework**: React
-- **State**: React Context + React Query
-- **Routing**: React Router
-- **Styling**: Tailwind CSS
-- **Real-time**: WebSocket Client
+### Frontend (2025-11 최신 버전)
+- **Framework**: React 19.2.0 (Node.js 20+)
+- **State**: React Context + React Query 3.39.3
+- **Routing**: React Router 7.9.5
+- **Styling**: Tailwind CSS 3.4.16
+- **HTTP Client**: Axios 1.13.2
+- **Real-time**: Socket.io-client 4.8.2
+- **Auth**: Supabase JS 2.48.0
 
 ### Infrastructure
 - **Container**: Docker & Docker Compose
-- **Database Migration**: Alembic
+- **Database Migration**: Alembic 1.17.1
+- **Development**: pytest 8.4.0, black 24.11.0, TypeScript 5.8.1
 
 ## 📁 프로젝트 구조
 
@@ -104,6 +110,30 @@ claude-code-playground/
 ```
 
 ## 🚀 빠른 시작
+
+### 0. 시스템 요구사항
+
+**필수 버전:**
+- **Python**: 3.9 이상 (권장: 3.11+)
+- **Node.js**: 20.0.0 이상 (Supabase JS 요구사항)
+- **npm**: 10.0.0 이상
+
+**버전 확인:**
+```bash
+python --version   # Python 3.9.x 이상
+node --version     # v20.x.x 이상
+npm --version      # 10.x.x 이상
+```
+
+**Node.js 20 설치 (필수):**
+```bash
+# nvm 사용 (권장)
+nvm install 20
+nvm use 20
+
+# 또는 공식 사이트에서 다운로드
+# https://nodejs.org/
+```
 
 ### 1. 환경 설정
 
@@ -307,6 +337,70 @@ REACT_APP_SUPABASE_ANON_KEY=your-supabase-anon-key
 - [ARCHITECTURE.md](./ARCHITECTURE.md) - 상세 시스템 아키텍처
 - [API Documentation](http://localhost:8000/docs) - 자동 생성 API 문서
 
+## ⚠️ 버전 업데이트 주의사항 (2025-11)
+
+### 주요 변경사항
+
+**최신 버전으로 업데이트됨 (2025년 11월):**
+
+#### Backend
+- ✅ **FastAPI 0.115.5**: 보안 패치, 성능 개선
+- ✅ **Redis 7.x**: 메이저 업그레이드 (5.x → 7.x)
+- ✅ **WebSockets 15.x**: 메이저 업그레이드 (12.x → 15.x)
+- ✅ **SQLAlchemy 2.0.44**: 최신 안정 버전
+- ✅ **Pydantic 2.12.3**: FieldInfo 개선
+
+#### Frontend
+- ✅ **React 19.2.0**: Activity API, useEffectEvent 추가
+- ✅ **React Router 7.9.5**: 패키지 통합 (backward compatible)
+- ✅ **TailwindCSS 3.4.16**: v3 최신 안정 버전 (v4는 breaking change 많음)
+- ✅ **Supabase JS 2.48.0**: Node.js 20+ 필수 (Node 18 EOL)
+
+### 마이그레이션 가이드
+
+**Python 패키지 재설치:**
+```bash
+cd backend
+pip install -r requirements.txt --upgrade
+```
+
+**Node.js 패키지 재설치:**
+```bash
+cd frontend
+rm -rf node_modules package-lock.json
+npm install
+```
+
+**Redis 7.x 변경사항:**
+- 일부 Redis 명령어 API가 변경되었을 수 있음
+- 기존 코드는 호환성 유지됨
+
+**React 19 변경사항:**
+- 새로운 API (Activity, useEffectEvent) 추가
+- 기존 코드는 backward compatible
+- 성능 개선 및 렌더링 최적화
+
+**Supabase JS 주의사항:**
+- Node.js 18은 2025년 4월 30일 EOL
+- **Node.js 20 이상 필수**
+
+### 호환성 확인
+
+의존성 설치 후 다음 명령어로 앱이 정상 작동하는지 확인:
+
+```bash
+# Backend 테스트
+cd backend
+pytest
+
+# Frontend 빌드 테스트
+cd frontend
+npm run build
+
+# 개발 서버 실행 테스트
+npm start
+```
+
 ## 🤝 기여
 
 이슈 및 풀 리퀘스트를 환영합니다!
@@ -321,4 +415,4 @@ Claude Code와 함께 개발된 교육 플랫폼
 
 ---
 
-**Note**: 이 프로젝트는 개발용 보일러플레이트입니다. 프로덕션 환경에서는 추가적인 보안 설정, 성능 최적화, 에러 처리가 필요합니다.
+**Note**: 이 프로젝트는 2025년 11월 기준 최신 버전으로 업데이트되었습니다. 프로덕션 환경에서는 추가적인 보안 설정, 성능 최적화, 에러 처리가 필요합니다.

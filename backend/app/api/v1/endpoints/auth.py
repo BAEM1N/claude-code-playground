@@ -8,13 +8,14 @@ from uuid import UUID
 
 from ....core.database import get_db
 from ....core.security import get_current_user
+from ....api.utils import get_or_404, update_model_from_schema
 from ....models.user import UserProfile
 from ....schemas.user import UserProfile as UserProfileSchema, UserProfileCreate, UserProfileUpdate
 
 router = APIRouter()
 
 
-@router.get("/me", response_model=UserProfileSchema)
+@router.get("/me", response_model=UserProfileSchema, status_code=status.HTTP_200_OK)
 async def get_current_user_profile(
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
@@ -26,17 +27,7 @@ async def get_current_user_profile(
         UserProfile: Current user profile
     """
     user_id = UUID(current_user["id"])
-
-    query = select(UserProfile).where(UserProfile.id == user_id)
-    result = await db.execute(query)
-    profile = result.scalar_one_or_none()
-
-    if not profile:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User profile not found"
-        )
-
+    profile = await get_or_404(db, UserProfile, user_id, "User profile not found")
     return profile
 
 
@@ -75,7 +66,7 @@ async def create_user_profile(
     return profile
 
 
-@router.put("/profile", response_model=UserProfileSchema)
+@router.put("/profile", response_model=UserProfileSchema, status_code=status.HTTP_200_OK)
 async def update_user_profile(
     profile_data: UserProfileUpdate,
     current_user: dict = Depends(get_current_user),
@@ -91,20 +82,10 @@ async def update_user_profile(
         UserProfile: Updated user profile
     """
     user_id = UUID(current_user["id"])
-
-    query = select(UserProfile).where(UserProfile.id == user_id)
-    result = await db.execute(query)
-    profile = result.scalar_one_or_none()
-
-    if not profile:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User profile not found"
-        )
+    profile = await get_or_404(db, UserProfile, user_id, "User profile not found")
 
     # Update profile
-    for field, value in profile_data.dict(exclude_unset=True).items():
-        setattr(profile, field, value)
+    profile = await update_model_from_schema(profile, profile_data)
 
     await db.commit()
     await db.refresh(profile)

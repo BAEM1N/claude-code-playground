@@ -146,4 +146,119 @@ export const assignmentsAPI = {
   },
 };
 
+// Attendance API
+export const attendanceAPI = {
+  // Session management (Instructor/Assistant)
+  createSession: (data) => api.post('/attendance/sessions', data),
+  getSessions: (courseId, params) => api.get('/attendance/sessions', {
+    params: { course_id: courseId, ...params }
+  }),
+  getSession: (sessionId) => api.get(`/attendance/sessions/${sessionId}`),
+  updateSession: (sessionId, data) => api.put(`/attendance/sessions/${sessionId}`, data),
+  deleteSession: (sessionId) => api.delete(`/attendance/sessions/${sessionId}`),
+
+  // Student check-in
+  checkIn: (data) => api.post('/attendance/checkin', data),
+
+  // Records
+  getRecords: (sessionId) => api.get('/attendance/records', {
+    params: { session_id: sessionId }
+  }),
+  getMyRecords: (courseId) => api.get('/attendance/my-records', {
+    params: { course_id: courseId }
+  }),
+};
+
+// Quiz API
+export const quizAPI = {
+  // Quiz management
+  getQuizzes: (courseId, params) => api.get('/quiz/quizzes', {
+    params: { course_id: courseId, ...params }
+  }),
+  getQuiz: (quizId) => api.get(`/quiz/quizzes/${quizId}`),
+  createQuiz: (data) => api.post('/quiz/quizzes', data),
+  updateQuiz: (quizId, data) => api.put(`/quiz/quizzes/${quizId}`, data),
+  deleteQuiz: (quizId) => api.delete(`/quiz/quizzes/${quizId}`),
+
+  // Question management
+  getQuestions: (quizId) => api.get(`/quiz/quizzes/${quizId}/questions`),
+  createQuestion: (quizId, data) => api.post(`/quiz/quizzes/${quizId}/questions`, data),
+  updateQuestion: (questionId, data) => api.put(`/quiz/questions/${questionId}`, data),
+  deleteQuestion: (questionId) => api.delete(`/quiz/questions/${questionId}`),
+
+  // Quiz taking
+  startQuiz: (quizId) => api.post(`/quiz/quizzes/${quizId}/start`),
+  submitQuiz: (attemptId, data) => api.post(`/quiz/attempts/${attemptId}/submit`, data),
+  trackBehavior: (attemptId, data) => api.patch(`/quiz/attempts/${attemptId}/track`, data),
+  getAttempt: (attemptId) => api.get(`/quiz/attempts/${attemptId}`),
+  getAttempts: (quizId) => api.get(`/quiz/quizzes/${quizId}/attempts`),
+
+  // Grading
+  gradeAnswer: (answerId, data) => api.post(`/quiz/answers/${answerId}/grade`, data),
+  getStatistics: (quizId) => api.get(`/quiz/quizzes/${quizId}/statistics`),
+};
+
+// Progress API
+export const progressAPI = {
+  // Progress tracking
+  getMyProgress: (courseId) => api.get('/progress/progress', {
+    params: { course_id: courseId }
+  }),
+  getProgressSummary: (courseId) => api.get(`/progress/progress/${courseId}/summary`),
+  getProgressComparison: (courseId) => api.get(`/progress/progress/${courseId}/comparison`),
+
+  // Activity logging
+  logActivity: (data) => api.post('/progress/activities', data),
+
+  // Achievements
+  getAchievements: (courseId) => api.get('/progress/achievements', {
+    params: { course_id: courseId }
+  }),
+
+  // Milestones
+  getMilestones: (courseId) => api.get('/progress/milestones', {
+    params: { course_id: courseId }
+  }),
+  createMilestone: (data) => api.post('/progress/milestones', data),
+  updateMilestone: (milestoneId, data) => api.put(`/progress/milestones/${milestoneId}`, data),
+  deleteMilestone: (milestoneId) => api.delete(`/progress/milestones/${milestoneId}`),
+
+  // Leaderboard
+  getLeaderboard: (courseId, limit = 10) => api.get(`/progress/leaderboard/${courseId}`, {
+    params: { limit }
+  }),
+
+  // Statistics
+  getStatistics: (courseId) => api.get(`/progress/statistics/${courseId}`),
+};
+
+// Calendar API
+export const calendarAPI = {
+  // Course events
+  getEvents: (params) => api.get('/calendar/events', { params }),
+  getEvent: (eventId) => api.get(`/calendar/events/${eventId}`),
+  createEvent: (data) => api.post('/calendar/events', data),
+  updateEvent: (eventId, data) => api.put(`/calendar/events/${eventId}`, data),
+  deleteEvent: (eventId) => api.delete(`/calendar/events/${eventId}`),
+
+  // Personal events
+  getPersonalEvents: (params) => api.get('/calendar/personal-events', { params }),
+  createPersonalEvent: (data) => api.post('/calendar/personal-events', data),
+  updatePersonalEvent: (eventId, data) => api.put(`/calendar/personal-events/${eventId}`, data),
+  deletePersonalEvent: (eventId) => api.delete(`/calendar/personal-events/${eventId}`),
+
+  // Calendar view
+  getCalendarView: (params) => api.get('/calendar/view', { params }),
+
+  // RSVP
+  rsvp: (eventId, data) => api.post(`/calendar/events/${eventId}/rsvp`, data),
+  getAttendees: (eventId) => api.get(`/calendar/events/${eventId}/attendees`),
+
+  // Export
+  exportToICal: (params) => api.get('/calendar/export/ical', {
+    params,
+    responseType: 'blob'
+  }),
+};
+
 export default api;

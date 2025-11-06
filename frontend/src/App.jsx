@@ -18,6 +18,12 @@ import AssignmentDetailPage from './pages/AssignmentDetailPage';
 import AssignmentFormPage from './pages/AssignmentFormPage';
 import SubmissionListPage from './pages/SubmissionListPage';
 
+// Priority 1 Feature Pages
+import AttendancePage from './pages/AttendancePage';
+import QuizPage from './pages/QuizPage';
+import ProgressPage from './pages/ProgressPage';
+import CalendarPage from './pages/CalendarPage';
+
 // Protected Route wrapper
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -106,6 +112,39 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <SubmissionListPage />
+          </ProtectedRoute>
+        }
+      />
+      {/* Priority 1 Features */}
+      <Route
+        path="/courses/:courseId/attendance"
+        element={
+          <ProtectedRoute>
+            <AttendancePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/courses/:courseId/quiz"
+        element={
+          <ProtectedRoute>
+            <QuizPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/courses/:courseId/progress"
+        element={
+          <ProtectedRoute>
+            <ProgressPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/calendar"
+        element={
+          <ProtectedRoute>
+            <CalendarPage />
           </ProtectedRoute>
         }
       />

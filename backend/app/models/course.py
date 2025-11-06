@@ -29,6 +29,10 @@ class Course(Base):
     files = relationship("File", back_populates="course", cascade="all, delete-orphan")
     folders = relationship("Folder", back_populates="course", cascade="all, delete-orphan")
     announcements = relationship("Announcement", back_populates="course", cascade="all, delete-orphan")
+    attendance_sessions = relationship("AttendanceSession", back_populates="course", cascade="all, delete-orphan")
+    quizzes = relationship("Quiz", back_populates="course", cascade="all, delete-orphan")
+    milestones = relationship("Milestone", back_populates="course", cascade="all, delete-orphan")
+    calendar_events = relationship("CalendarEvent", back_populates="course", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Course(id={self.id}, name={self.name}, code={self.code})>"

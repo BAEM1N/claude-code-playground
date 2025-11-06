@@ -6,13 +6,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
 from typing import List, Optional
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, timedelta
 import secrets
 import string
 
 from ....core.database import get_db
-from ....api.deps import get_current_user, require_course_member, require_instructor_or_assistant
-from ....api.utils import get_or_404, update_model_from_schema, soft_delete
+from ....core.auth import get_current_user, require_instructor_or_assistant
+from ....api.utils.db_helpers import get_or_404, update_model_from_schema, soft_delete
 from ....models import AttendanceSession, AttendanceRecord, Course, CourseMember, UserProfile
 from ....schemas.attendance import (
     AttendanceSessionCreate,
@@ -25,7 +25,7 @@ from ....schemas.attendance import (
     AttendanceStats,
     StudentAttendanceStats,
 )
-from ....services.notification_service import create_notification
+from ....api.v1.endpoints.notifications import create_notification
 
 router = APIRouter()
 
@@ -312,9 +312,7 @@ async def check_in(
         )
 
     # Determine status (present or late)
-    late_threshold = session.start_time.replace(
-        minute=session.start_time.minute + session.allow_late_minutes
-    )
+    late_threshold = session.start_time + timedelta(minutes=session.allow_late_minutes)
     status_value = "late" if now > late_threshold else "present"
 
     # Create attendance record
@@ -386,6 +384,10 @@ async def get_my_attendance_records(
     )
     sessions_result = await db.execute(sessions_query)
     session_ids = [row[0] for row in sessions_result.all()]
+
+    # Return empty list if no sessions
+    if not session_ids:
+        return []
 
     # Get my records
     query = select(AttendanceRecord).where(

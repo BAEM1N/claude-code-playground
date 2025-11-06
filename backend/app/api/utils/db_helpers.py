@@ -104,7 +104,7 @@ async def update_model_from_schema(
         >>> assignment = await update_model_from_schema(assignment, assignment_data)
         >>> await db.commit()
     """
-    update_data = schema.dict(exclude_unset=exclude_unset, exclude_none=exclude_none)
+    update_data = schema.model_dump(exclude_unset=exclude_unset, exclude_none=exclude_none)
 
     for field, value in update_data.items():
         setattr(obj, field, value)

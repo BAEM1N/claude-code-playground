@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { calendarAPI } from '../services/api';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorAlert from '../components/common/ErrorAlert';
+import CalendarGrid from '../components/calendar/CalendarGrid';
+import EventForm from '../components/calendar/EventForm';
 
 const CalendarPage = () => {
   const [events, setEvents] = useState([]);
@@ -154,14 +156,17 @@ const CalendarPage = () => {
         </div>
       )}
 
-      {/* Calendar View - Simplified */}
+      {/* Calendar View - Grid */}
       {view === 'calendar' && (
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="text-center text-gray-500 py-12">
-            <p className="mb-4">캘린더 뷰는 향후 업데이트에서 제공됩니다.</p>
-            <p className="text-sm">현재는 목록 보기를 사용해주세요.</p>
-          </div>
-        </div>
+        <CalendarGrid
+          events={events}
+          onDateClick={(date) => {
+            console.log('Date clicked:', date);
+          }}
+          onEventClick={(event) => {
+            console.log('Event clicked:', event);
+          }}
+        />
       )}
     </div>
   );

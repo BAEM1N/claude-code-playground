@@ -1,28 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { quizAPI } from '../../services/api';
+import React from 'react';
+import { useQuizzes } from '../../hooks/useQuizzes';
 import LoadingSpinner from '../common/LoadingSpinner';
 import ErrorAlert from '../common/ErrorAlert';
 
 const QuizList = ({ courseId, userRole }) => {
-  const [quizzes, setQuizzes] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    fetchQuizzes();
-  }, [courseId]);
-
-  const fetchQuizzes = async () => {
-    try {
-      setLoading(true);
-      const response = await quizAPI.getQuizzes(courseId);
-      setQuizzes(response.data);
-    } catch (err) {
-      setError(err.response?.data?.detail || '퀴즈 목록을 불러오는데 실패했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: quizzes = [], isLoading, error } = useQuizzes(courseId);
 
   const getQuizStatus = (quiz) => {
     const now = new Date();
@@ -44,8 +26,8 @@ const QuizList = ({ courseId, userRole }) => {
     return types[type] || type;
   };
 
-  if (loading) return <LoadingSpinner />;
-  if (error) return <ErrorAlert message={error} />;
+  if (isLoading) return <LoadingSpinner />;
+  if (error) return <ErrorAlert message={error?.message || '퀴즈 목록을 불러오는데 실패했습니다.'} />;
 
   return (
     <div className="space-y-4">

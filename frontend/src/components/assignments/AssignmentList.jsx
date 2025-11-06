@@ -10,23 +10,24 @@ import { formatDateTime } from '../../utils/formatters';
 
 const AssignmentList = ({ courseId, role }) => {
   const navigate = useNavigate();
-  const { assignments, loading, error } = useAssignments(
-    courseId,
-    role === 'instructor' || role === 'assistant'
-  );
-
   const isInstructor = role === 'instructor' || role === 'assistant';
+
+  // React Query를 사용한 데이터 페칭 - 자동 캐싱 및 refetch 지원
+  const { data: assignments = [], isLoading, error } = useAssignments(
+    courseId,
+    isInstructor
+  );
 
   const isOverdue = (dueDate) => {
     return new Date(dueDate) < new Date();
   };
 
-  if (loading) {
+  if (isLoading) {
     return <LoadingSpinner message="과제 목록 로딩 중..." />;
   }
 
   if (error) {
-    return <ErrorAlert message={error} />;
+    return <ErrorAlert message={error?.message || '과제 목록을 불러오는데 실패했습니다.'} />;
   }
 
   return (

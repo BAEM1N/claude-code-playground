@@ -1,37 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { attendanceAPI } from '../../services/api';
+import React from 'react';
+import { useAttendanceSessions, useDeleteAttendanceSession } from '../../hooks/useAttendance';
 import LoadingSpinner from '../common/LoadingSpinner';
 import ErrorAlert from '../common/ErrorAlert';
 
 const AttendanceSessionList = ({ courseId, userRole }) => {
-  const [sessions, setSessions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    fetchSessions();
-  }, [courseId]);
-
-  const fetchSessions = async () => {
-    try {
-      setLoading(true);
-      const response = await attendanceAPI.getSessions(courseId);
-      setSessions(response.data);
-    } catch (err) {
-      setError(err.response?.data?.detail || '출석 세션을 불러오는데 실패했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: sessions = [], isLoading, error } = useAttendanceSessions(courseId);
+  const deleteMutation = useDeleteAttendanceSession();
 
   const handleDelete = async (sessionId) => {
     if (!window.confirm('출석 세션을 삭제하시겠습니까?')) return;
 
     try {
-      await attendanceAPI.deleteSession(sessionId);
-      fetchSessions();
+      await deleteMutation.mutateAsync(sessionId);
     } catch (err) {
-      setError(err.response?.data?.detail || '삭제에 실패했습니다.');
+      alert(err.response?.data?.detail || '삭제에 실패했습니다.');
     }
   };
 
@@ -55,8 +37,8 @@ const AttendanceSessionList = ({ courseId, userRole }) => {
     return '진행중';
   };
 
-  if (loading) return <LoadingSpinner />;
-  if (error) return <ErrorAlert message={error} />;
+  if (isLoading) return <LoadingSpinner />;
+  if (error) return <ErrorAlert message={error?.message || '출석 세션을 불러오는데 실패했습니다.'} />;
 
   return (
     <div className="space-y-4">

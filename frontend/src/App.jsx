@@ -3,7 +3,27 @@
  */
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from 'react-query';
+import { ReactQueryDevtools } from 'react-query/devtools';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+
+// Create a client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5분 - 데이터가 fresh한 시간
+      cacheTime: 10 * 60 * 1000, // 10분 - 캐시 유지 시간
+      refetchOnWindowFocus: false, // 윈도우 포커스 시 자동 refetch 비활성화
+      refetchOnMount: true, // 컴포넌트 마운트 시 refetch
+      refetchOnReconnect: true, // 재연결 시 refetch
+      retry: 1, // 실패 시 재시도 횟수
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // 재시도 딜레이 (exponential backoff)
+    },
+    mutations: {
+      retry: 1,
+    },
+  },
+});
 
 // Placeholder components (to be implemented)
 const LoginPage = () => <div>Login Page</div>;
@@ -154,13 +174,17 @@ function AppRoutes() {
 
 function App() {
   return (
-    <Router>
-      <AuthProvider>
-        <div className="App">
-          <AppRoutes />
-        </div>
-      </AuthProvider>
-    </Router>
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <AuthProvider>
+          <div className="App">
+            <AppRoutes />
+          </div>
+        </AuthProvider>
+      </Router>
+      {/* React Query Devtools - 개발 환경에서만 표시 */}
+      {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
+    </QueryClientProvider>
   );
 }
 

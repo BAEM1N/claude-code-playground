@@ -975,11 +975,21 @@ export const EventType = {
 - [x] ✅ 하드코딩된 URL 제거 (완료: 2025-11-06)
   - frontend/src/config/config.js (280+ 라인)
 
-### 권장 개선 사항 (Medium)
-- [ ] 소프트 삭제 일관성 개선
-- [ ] created_by 필드 추가
-- [ ] 환경별 설정 파일 분리
-- [ ] API 문서 자동 생성
+### 권장 개선 사항 (Medium) - ✅ 100% 완료
+- [x] ✅ 소프트 삭제 일관성 개선 (완료: 2025-11-06)
+  - AttendanceSession, AttendanceRecord, Question, QuizAttempt, Answer 모델에 is_deleted 추가
+  - 모든 데이터베이스 모델에 일관된 소프트 삭제 지원
+- [x] ✅ created_by 필드 추가 (완료: 2025-11-06)
+  - Question 모델에 created_by 및 creator relationship 추가
+  - 중요 엔티티의 생성자 추적 가능
+- [x] ✅ 환경별 설정 파일 분리 (완료: 2025-11-06)
+  - BaseConfig, DevelopmentConfig, StagingConfig, ProductionConfig 클래스 생성
+  - get_settings() 함수로 환경별 자동 설정 로드
+  - 환경에 따른 데이터베이스, CORS, 캐시 TTL 자동 조정
+- [x] ✅ API 문서 자동 생성 (완료: 2025-11-06)
+  - 상세한 OpenAPI 설명 및 태그 추가
+  - 연락처 및 라이선스 정보 추가
+  - 프로덕션 환경에서 문서 자동 비활성화
 
 ---
 
@@ -1025,11 +1035,21 @@ export const EventType = {
    - createCRUDAPI, createAPIService, createNestedCRUDAPI
    - 8개 API 서비스 리팩토링 (80+ 라인 제거)
 
-### 남은 이슈 (Optional - Priority 3)
-1. 소프트 삭제 일관성 개선
-2. created_by 필드 추가
-3. 환경별 설정 파일 분리
-4. API 문서 자동 생성
+7. ✅ **Priority 3: Medium - 100% 완료** (2025-11-06)
+   - 소프트 삭제 일관성 개선 (5개 모델에 is_deleted 추가)
+   - created_by 필드 추가 (Question 모델)
+   - 환경별 설정 분리 (dev/staging/prod)
+   - API 문서 자동 생성 개선 (OpenAPI 상세 설명)
+
+### 남은 이슈 (Optional - Priority 4: Low)
+Priority 1-3의 모든 작업이 완료되었습니다! 🎉
+
+아래는 선택적으로 추가할 수 있는 낮은 우선순위 개선 사항입니다:
+1. 백엔드 단위 테스트 작성
+2. 프론트엔드 단위 테스트 작성
+3. E2E 테스트 작성
+4. 프론트엔드 컴포넌트 Storybook 추가
+5. 개발자 가이드 작성
 
 ### 다음 단계
 1. ~~Priority 1 기능 프론트엔드 구현~~ ✅ 완료
@@ -1038,7 +1058,14 @@ export const EventType = {
 4. ~~하드코딩된 URL 제거~~ ✅ 완료
 5. ~~코드 리팩토링 (CRUD 팩토리 패턴)~~ ✅ 완료
 6. ~~API 서비스 팩토리 구현~~ ✅ 완료
+7. ~~소프트 삭제 일관성 개선~~ ✅ 완료
+8. ~~created_by 필드 추가~~ ✅ 완료
+9. ~~환경별 설정 파일 분리~~ ✅ 완료
+10. ~~API 문서 자동 생성~~ ✅ 완료
 
-**🎉 Priority 1 & 2 작업 100% 완료!** (10/10 항목)
+**🎉🎉🎉 Priority 1, 2, 3 작업 100% 완료!!! 🎉🎉🎉**
 
-이 보고서를 기반으로 체계적인 개선 작업을 진행하시기 바랍니다.
+**총 14/14 항목 완료 (100%)**
+
+모든 중요 코드 품질 개선 작업이 완료되었습니다!
+이제 프로덕션 배포가 가능한 상태입니다.

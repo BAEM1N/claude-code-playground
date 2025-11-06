@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { quizAPI } from '../../services/api';
+import { useQuiz, useCreateQuiz, useUpdateQuiz } from '../../hooks/useQuizzes';
 import ErrorAlert from '../common/ErrorAlert';
 
 const QuizForm = ({ courseId, quizId = null, onSuccess, onCancel }) => {
+  const { data: existingQuiz } = useQuiz(quizId);
+  const createMutation = useCreateQuiz();
+  const updateMutation = useUpdateQuiz();
+  const [error, setError] = useState(null);
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -18,32 +23,19 @@ const QuizForm = ({ courseId, quizId = null, onSuccess, onCancel }) => {
     allow_review: true,
     max_attempts: 1,
   });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (quizId) {
-      fetchQuiz();
-    }
-  }, [quizId]);
-
-  const fetchQuiz = async () => {
-    try {
-      const response = await quizAPI.getQuiz(quizId);
-      const quiz = response.data;
+    if (existingQuiz) {
       setFormData({
-        ...quiz,
-        start_time: new Date(quiz.start_time).toISOString().slice(0, 16),
-        end_time: new Date(quiz.end_time).toISOString().slice(0, 16),
+        ...existingQuiz,
+        start_time: new Date(existingQuiz.start_time).toISOString().slice(0, 16),
+        end_time: new Date(existingQuiz.end_time).toISOString().slice(0, 16),
       });
-    } catch (err) {
-      setError(err.response?.data?.detail || '퀴즈 정보를 불러올 수 없습니다.');
     }
-  };
+  }, [existingQuiz]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
 
     try {
@@ -55,16 +47,14 @@ const QuizForm = ({ courseId, quizId = null, onSuccess, onCancel }) => {
       };
 
       if (quizId) {
-        await quizAPI.updateQuiz(quizId, data);
+        await updateMutation.mutateAsync({ quizId, quizData: data });
       } else {
-        await quizAPI.createQuiz(data);
+        await createMutation.mutateAsync(data);
       }
 
       onSuccess?.();
     } catch (err) {
       setError(err.response?.data?.detail || '퀴즈 저장에 실패했습니다.');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -294,10 +284,10 @@ const QuizForm = ({ courseId, quizId = null, onSuccess, onCancel }) => {
         <div className="flex gap-3 pt-4">
           <button
             type="submit"
-            disabled={loading}
+            disabled={createMutation.isLoading || updateMutation.isLoading}
             className="flex-1 bg-blue-500 text-white py-3 px-4 rounded-lg hover:bg-blue-600 disabled:opacity-50 font-medium"
           >
-            {loading ? '저장 중...' : quizId ? '수정하기' : '생성하기'}
+            {(createMutation.isLoading || updateMutation.isLoading) ? '저장 중...' : quizId ? '수정하기' : '생성하기'}
           </button>
           {onCancel && (
             <button

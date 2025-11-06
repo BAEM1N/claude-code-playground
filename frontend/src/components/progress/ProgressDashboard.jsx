@@ -1,34 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { progressAPI } from '../../services/api';
+import React from 'react';
+import { useLearningProgress, useAchievements, useLearningActivities } from '../../hooks/useProgress';
 import LoadingSpinner from '../common/LoadingSpinner';
 import ErrorAlert from '../common/ErrorAlert';
 
 const ProgressDashboard = ({ courseId }) => {
-  const [summary, setSummary] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { data: progress, isLoading: progressLoading, error: progressError } = useLearningProgress(courseId);
+  const { data: achievements = [] } = useAchievements(courseId);
+  const { data: activities = [] } = useLearningActivities(courseId, null, { limit: 5 });
 
-  useEffect(() => {
-    fetchProgressSummary();
-  }, [courseId]);
+  if (progressLoading) return <LoadingSpinner />;
+  if (progressError) return <ErrorAlert message={progressError?.message || '진도 정보를 불러오는데 실패했습니다.'} />;
+  if (!progress) return null;
 
-  const fetchProgressSummary = async () => {
-    try {
-      setLoading(true);
-      const response = await progressAPI.getProgressSummary(courseId);
-      setSummary(response.data);
-    } catch (err) {
-      setError(err.response?.data?.detail || '진도 정보를 불러오는데 실패했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) return <LoadingSpinner />;
-  if (error) return <ErrorAlert message={error} />;
-  if (!summary) return null;
-
-  const { progress, recent_achievements, recent_activities } = summary;
+  const recent_achievements = achievements.slice(0, 5);
+  const recent_activities = activities;
 
   return (
     <div className="space-y-6">

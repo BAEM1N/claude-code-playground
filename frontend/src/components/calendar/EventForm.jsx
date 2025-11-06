@@ -1,8 +1,14 @@
 import React, { useState } from 'react';
-import { calendarAPI } from '../../services/api';
+import { useCreateCalendarEvent, useUpdateCalendarEvent, useCreatePersonalEvent, useUpdatePersonalEvent } from '../../hooks/useCalendar';
 import ErrorAlert from '../common/ErrorAlert';
 
 const EventForm = ({ event = null, courseId = null, onSuccess, onCancel }) => {
+  const createEventMutation = useCreateCalendarEvent();
+  const updateEventMutation = useUpdateCalendarEvent();
+  const createPersonalMutation = useCreatePersonalEvent();
+  const updatePersonalMutation = useUpdatePersonalEvent();
+  const [error, setError] = useState(null);
+
   const [formData, setFormData] = useState(event || {
     event_type: 'personal',
     title: '',
@@ -17,12 +23,8 @@ const EventForm = ({ event = null, courseId = null, onSuccess, onCancel }) => {
     recurrence_rule: '',
   });
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
 
     try {
@@ -34,16 +36,24 @@ const EventForm = ({ event = null, courseId = null, onSuccess, onCancel }) => {
       };
 
       if (event) {
-        await calendarAPI.updateEvent(event.id, data);
+        // Update existing event
+        if (courseId) {
+          await updateEventMutation.mutateAsync({ eventId: event.id, eventData: data });
+        } else {
+          await updatePersonalMutation.mutateAsync({ eventId: event.id, eventData: data });
+        }
       } else {
-        await calendarAPI.createEvent(data);
+        // Create new event
+        if (courseId) {
+          await createEventMutation.mutateAsync({ courseId, eventData: data });
+        } else {
+          await createPersonalMutation.mutateAsync(data);
+        }
       }
 
       onSuccess?.();
     } catch (err) {
       setError(err.response?.data?.detail || '일정 저장에 실패했습니다.');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -272,10 +282,10 @@ const EventForm = ({ event = null, courseId = null, onSuccess, onCancel }) => {
         <div className="flex gap-3 pt-4">
           <button
             type="submit"
-            disabled={loading}
+            disabled={createEventMutation.isLoading || updateEventMutation.isLoading || createPersonalMutation.isLoading || updatePersonalMutation.isLoading}
             className="flex-1 bg-blue-500 text-white py-3 px-4 rounded-lg hover:bg-blue-600 disabled:opacity-50 font-medium"
           >
-            {loading ? '저장 중...' : event ? '수정하기' : '추가하기'}
+            {(createEventMutation.isLoading || updateEventMutation.isLoading || createPersonalMutation.isLoading || updatePersonalMutation.isLoading) ? '저장 중...' : event ? '수정하기' : '추가하기'}
           </button>
           {onCancel && (
             <button

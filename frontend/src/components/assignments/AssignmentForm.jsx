@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { assignmentsAPI } from '../../services/api';
+import { useCreateAssignment, useUpdateAssignment } from '../../hooks/useAssignments';
 import { ErrorAlert } from '../common/ErrorAlert';
 import { formatDateForInput } from '../../utils/formatters';
 import FileUpload from '../common/FileUpload';
@@ -12,7 +13,8 @@ import RubricEditor from './RubricEditor';
 
 const AssignmentForm = ({ courseId, assignmentId, initialData }) => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+  const createMutation = useCreateAssignment();
+  const updateMutation = useUpdateAssignment();
   const [error, setError] = useState(null);
 
   const [formData, setFormData] = useState({
@@ -73,7 +75,6 @@ const AssignmentForm = ({ courseId, assignmentId, initialData }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
 
     try {
@@ -86,26 +87,30 @@ const AssignmentForm = ({ courseId, assignmentId, initialData }) => {
       let createdAssignmentId = assignmentId;
 
       if (assignmentId) {
-        // Update existing assignment
-        await assignmentsAPI.updateAssignment(assignmentId, submitData);
+        // Update existing assignment using React Query mutation
+        await updateMutation.mutateAsync({
+          assignmentId,
+          assignmentData: submitData,
+        });
       } else {
-        // Create new assignment
-        const response = await assignmentsAPI.createAssignment(courseId, submitData);
-        createdAssignmentId = response.data.id;
+        // Create new assignment using React Query mutation
+        const result = await createMutation.mutateAsync({
+          courseId,
+          assignmentData: submitData,
+        });
+        createdAssignmentId = result.id;
       }
 
       // Upload files if any
       if (materialFiles.length > 0 || solutionFiles.length > 0 || rubricFiles.length > 0) {
         setUploadingFiles(true);
         await uploadFiles(createdAssignmentId);
+        setUploadingFiles(false);
       }
 
       navigate(`/courses/${courseId}/assignments`);
     } catch (err) {
       setError(err.response?.data?.detail || err.message);
-    } finally {
-      setLoading(false);
-      setUploadingFiles(false);
     }
   };
 
@@ -367,10 +372,10 @@ const AssignmentForm = ({ courseId, assignmentId, initialData }) => {
           <div className="flex gap-3 pt-4">
             <button
               type="submit"
-              disabled={loading || uploadingFiles}
+              disabled={createMutation.isLoading || updateMutation.isLoading || uploadingFiles}
               className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
-              {uploadingFiles ? '파일 업로드 중...' : loading ? '저장 중...' : assignmentId ? '수정하기' : '과제 만들기'}
+              {uploadingFiles ? '파일 업로드 중...' : (createMutation.isLoading || updateMutation.isLoading) ? '저장 중...' : assignmentId ? '수정하기' : '과제 만들기'}
             </button>
             <button
               type="button"

@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
-import { attendanceAPI } from '../../services/api';
+import { useCreateAttendanceSession, useUpdateAttendanceSession } from '../../hooks/useAttendance';
 import ErrorAlert from '../common/ErrorAlert';
 
 const AttendanceSessionForm = ({ courseId, sessionId = null, onSuccess, onCancel }) => {
+  const createMutation = useCreateAttendanceSession();
+  const updateMutation = useUpdateAttendanceSession();
+  const [error, setError] = useState(null);
+
   const [formData, setFormData] = useState({
     title: '',
     start_time: '',
@@ -11,12 +15,9 @@ const AttendanceSessionForm = ({ courseId, sessionId = null, onSuccess, onCancel
     password: '',
     location_required: false,
   });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
 
     try {
@@ -28,16 +29,14 @@ const AttendanceSessionForm = ({ courseId, sessionId = null, onSuccess, onCancel
       };
 
       if (sessionId) {
-        await attendanceAPI.updateSession(sessionId, data);
+        await updateMutation.mutateAsync({ sessionId, sessionData: data });
       } else {
-        await attendanceAPI.createSession(data);
+        await createMutation.mutateAsync({ courseId, sessionData: data });
       }
 
       onSuccess?.();
     } catch (err) {
       setError(err.response?.data?.detail || '출석 세션 저장에 실패했습니다.');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -156,10 +155,10 @@ const AttendanceSessionForm = ({ courseId, sessionId = null, onSuccess, onCancel
         <div className="flex gap-3 pt-4">
           <button
             type="submit"
-            disabled={loading}
+            disabled={createMutation.isLoading || updateMutation.isLoading}
             className="flex-1 bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 disabled:opacity-50"
           >
-            {loading ? '저장 중...' : sessionId ? '수정하기' : '생성하기'}
+            {(createMutation.isLoading || updateMutation.isLoading) ? '저장 중...' : sessionId ? '수정하기' : '생성하기'}
           </button>
           {onCancel && (
             <button

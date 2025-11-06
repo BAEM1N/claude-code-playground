@@ -1,18 +1,19 @@
 """
 Application configuration module.
+Environment-specific configuration management.
 """
+import os
 from typing import List
 from pydantic_settings import BaseSettings
 from pydantic import AnyHttpUrl, validator
 
 
-class Settings(BaseSettings):
-    """Application settings."""
+class BaseConfig(BaseSettings):
+    """Base configuration shared across all environments."""
 
     # Application
     APP_NAME: str = "통합 커뮤니케이션 & 파일 관리 시스템"
     APP_VERSION: str = "1.0.0"
-    DEBUG: bool = True
     ENVIRONMENT: str = "development"
 
     # Server
@@ -82,4 +83,99 @@ class Settings(BaseSettings):
         case_sensitive = True
 
 
-settings = Settings()
+class DevelopmentConfig(BaseConfig):
+    """Development environment configuration."""
+
+    DEBUG: bool = True
+    ENVIRONMENT: str = "development"
+
+    # Database: SQLite for development
+    DATABASE_URL: str = "sqlite+aiosqlite:///./app.db"
+
+    # CORS: Allow local development origins
+    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:3000"]
+
+    # Cache TTL: Shorter for development
+    CACHE_USER_PROFILE_TTL: int = 300  # 5 minutes
+    CACHE_COURSE_TTL: int = 300
+    CACHE_COURSE_MEMBERS_TTL: int = 180
+    CACHE_MESSAGES_TTL: int = 60
+    CACHE_NOTIFICATIONS_TTL: int = 30
+
+
+class StagingConfig(BaseConfig):
+    """Staging environment configuration."""
+
+    DEBUG: bool = False
+    ENVIRONMENT: str = "staging"
+
+    # Database: PostgreSQL required
+    DATABASE_URL: str  # Must be set via environment variable
+
+    # CORS: Must be set via environment variable
+    CORS_ORIGINS: List[str] = []
+
+    # MinIO: Secure connection required
+    MINIO_SECURE: bool = True
+
+    # Cache TTL: Moderate for staging
+    CACHE_USER_PROFILE_TTL: int = 1800  # 30 minutes
+    CACHE_COURSE_TTL: int = 1800
+    CACHE_COURSE_MEMBERS_TTL: int = 900
+    CACHE_MESSAGES_TTL: int = 300
+    CACHE_NOTIFICATIONS_TTL: int = 180
+
+
+class ProductionConfig(BaseConfig):
+    """Production environment configuration."""
+
+    DEBUG: bool = False
+    ENVIRONMENT: str = "production"
+
+    # Database: PostgreSQL required
+    DATABASE_URL: str  # Must be set via environment variable
+
+    # CORS: Must be set via environment variable (comma-separated)
+    CORS_ORIGINS: List[str] = []
+
+    # MinIO: Secure connection required
+    MINIO_SECURE: bool = True
+
+    # Security: Stricter token expiration
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
+
+    # Cache TTL: Longer for production
+    CACHE_USER_PROFILE_TTL: int = 3600  # 1 hour
+    CACHE_COURSE_TTL: int = 3600
+    CACHE_COURSE_MEMBERS_TTL: int = 1800
+    CACHE_MESSAGES_TTL: int = 600
+    CACHE_NOTIFICATIONS_TTL: int = 300
+
+
+def get_settings() -> BaseConfig:
+    """
+    Get configuration based on ENVIRONMENT variable.
+
+    Returns:
+        Appropriate configuration instance based on environment.
+
+    Example:
+        settings = get_settings()
+    """
+    env = os.getenv("ENVIRONMENT", "development").lower()
+
+    config_map = {
+        "development": DevelopmentConfig,
+        "dev": DevelopmentConfig,
+        "staging": StagingConfig,
+        "stage": StagingConfig,
+        "production": ProductionConfig,
+        "prod": ProductionConfig,
+    }
+
+    config_class = config_map.get(env, DevelopmentConfig)
+    return config_class()
+
+
+# Create settings instance based on environment
+settings = get_settings()

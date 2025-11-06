@@ -68,11 +68,14 @@ class Question(Base):
     explanation = Column(Text)  # 해설
 
     # 메타데이터
+    created_by = Column(UUID(as_uuid=True), ForeignKey("user_profiles.id"))
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    is_deleted = Column(Boolean, default=False)
 
     # Relationships
     quiz = relationship("Quiz", back_populates="questions")
+    creator = relationship("UserProfile", foreign_keys=[created_by])
     answers = relationship("Answer", back_populates="question", cascade="all, delete-orphan")
 
 
@@ -105,6 +108,7 @@ class QuizAttempt(Base):
     status = Column(String(20), default="in_progress")  # in_progress, submitted, graded
     ip_address = Column(String(45))
     user_agent = Column(Text)
+    is_deleted = Column(Boolean, default=False)
 
     # Relationships
     quiz = relationship("Quiz", back_populates="attempts")
@@ -132,6 +136,7 @@ class Answer(Base):
     # 메타데이터
     answered_at = Column(DateTime, default=datetime.utcnow)
     graded_at = Column(DateTime)
+    is_deleted = Column(Boolean, default=False)
 
     # Relationships
     attempt = relationship("QuizAttempt", back_populates="answers")

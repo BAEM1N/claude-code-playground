@@ -36,6 +36,7 @@ class AttendanceSession(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_active = Column(Boolean, default=True)
+    is_deleted = Column(Boolean, default=False)
 
     # Relationships
     course = relationship("Course", back_populates="attendance_sessions")
@@ -65,6 +66,7 @@ class AttendanceRecord(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     notes = Column(Text)  # 관리자 메모
+    is_deleted = Column(Boolean, default=False)
 
     # Relationships
     session = relationship("AttendanceSession", back_populates="records")

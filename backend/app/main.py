@@ -52,7 +52,51 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
-    lifespan=lifespan
+    description="""
+    ## 통합 LMS (Learning Management System) API
+
+    이 API는 강의 관리, 과제 제출, 퀴즈/시험, 출석 체크, 학습 진도 추적, 실시간 커뮤니케이션 등의 기능을 제공합니다.
+
+    ### 주요 기능
+
+    * **인증 및 사용자 관리**: Supabase 기반 인증
+    * **강의 관리**: 강의 생성, 수정, 학생 관리
+    * **과제 시스템**: 과제 생성, 제출, 채점
+    * **퀴즈/시험**: 자동 채점, 부정행위 감지, 통계
+    * **출석 체크**: QR 코드, 비밀번호, 위치 기반 출석
+    * **학습 진도**: 진도 추적, 업적 시스템, 리더보드
+    * **캘린더**: 강의 일정, 과제 마감일, 이벤트 관리
+    * **실시간 커뮤니케이션**: WebSocket 기반 채팅 및 알림
+    * **파일 관리**: MinIO 기반 파일 업로드/다운로드
+
+    ### 인증
+
+    대부분의 API는 인증이 필요합니다. `Authorization: Bearer <token>` 헤더를 사용하세요.
+    """,
+    lifespan=lifespan,
+    docs_url="/api/docs" if settings.DEBUG or settings.ENVIRONMENT == "development" else None,
+    redoc_url="/api/redoc" if settings.DEBUG or settings.ENVIRONMENT == "development" else None,
+    openapi_url="/api/openapi.json",
+    openapi_tags=[
+        {"name": "auth", "description": "인증 및 사용자 관리"},
+        {"name": "courses", "description": "강의 관리 (생성, 수정, 삭제, 학생 관리)"},
+        {"name": "assignments", "description": "과제 시스템 (과제 생성, 제출, 채점)"},
+        {"name": "quiz", "description": "퀴즈/시험 시스템 (문제 관리, 응시, 채점, 통계)"},
+        {"name": "attendance", "description": "출석 체크 (QR 코드, 비밀번호, 위치 기반)"},
+        {"name": "progress", "description": "학습 진도 추적 (업적, 리더보드, 통계)"},
+        {"name": "calendar", "description": "캘린더 시스템 (이벤트, 일정 관리, RSVP)"},
+        {"name": "channels", "description": "채널 관리 (강의별 커뮤니케이션 채널)"},
+        {"name": "messages", "description": "메시지 시스템 (채팅, 댓글, 답글)"},
+        {"name": "files", "description": "파일 관리 (업로드, 다운로드, 삭제)"},
+        {"name": "notifications", "description": "알림 시스템 (실시간 알림, 읽음 처리)"},
+    ],
+    contact={
+        "name": "API Support",
+        "email": "support@example.com",
+    },
+    license_info={
+        "name": "MIT License",
+    },
 )
 
 # CORS middleware

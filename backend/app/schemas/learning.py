@@ -3,7 +3,7 @@ Learning Module System Schemas
 """
 from typing import Optional, List, Any, Dict
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from uuid import UUID
 
 
@@ -198,18 +198,41 @@ class LearningTopicCreate(LearningTopicBase):
     chapter_id: UUID
 
     # Content fields (only provide relevant ones based on content_type)
-    markdown_content: Optional[str] = None
+    markdown_content: Optional[str] = Field(None, max_length=1000000, description="Markdown content (max 1MB)")
     markdown_file_url: Optional[str] = Field(None, max_length=500)
 
-    notebook_data: Optional[Dict[str, Any]] = None  # Full .ipynb JSON
-    notebook_kernel: Optional[str] = Field(default="python3", max_length=50)
+    notebook_data: Optional[Dict[str, Any]] = Field(None, description="Full .ipynb JSON (max 10MB)")
+    notebook_kernel: Optional[str] = Field(default="python3", description="Kernel: python3, javascript, or sql")
 
     video_source: Optional[str] = Field(None, pattern="^(minio|youtube|vimeo)$")
     video_url: Optional[str] = Field(None, max_length=500)
-    video_duration_seconds: Optional[int] = Field(None, ge=0)
+    video_duration_seconds: Optional[int] = Field(None, ge=0, le=86400, description="Duration in seconds (max 24h)")
     video_thumbnail_url: Optional[str] = Field(None, max_length=500)
 
     attachments: Optional[List[Dict[str, str]]] = None
+
+    @field_validator('notebook_kernel')
+    @classmethod
+    def validate_notebook_kernel(cls, v: Optional[str]) -> Optional[str]:
+        """Validate notebook kernel type"""
+        if v is None:
+            return v
+        allowed_kernels = {'python3', 'javascript', 'sql'}
+        if v not in allowed_kernels:
+            raise ValueError(f"notebook_kernel must be one of {allowed_kernels}, got '{v}'")
+        return v
+
+    @field_validator('notebook_data')
+    @classmethod
+    def validate_notebook_data_size(cls, v: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        """Validate notebook data size (max 10MB)"""
+        if v is None:
+            return v
+        import json
+        data_str = json.dumps(v)
+        if len(data_str) > 10 * 1024 * 1024:  # 10MB
+            raise ValueError("notebook_data exceeds 10MB limit")
+        return v
 
 
 class LearningTopicUpdate(BaseModel):
@@ -222,18 +245,41 @@ class LearningTopicUpdate(BaseModel):
     is_required: Optional[bool] = None
 
     # Content updates
-    markdown_content: Optional[str] = None
+    markdown_content: Optional[str] = Field(None, max_length=1000000, description="Markdown content (max 1MB)")
     markdown_file_url: Optional[str] = Field(None, max_length=500)
 
-    notebook_data: Optional[Dict[str, Any]] = None
-    notebook_kernel: Optional[str] = Field(None, max_length=50)
+    notebook_data: Optional[Dict[str, Any]] = Field(None, description="Full .ipynb JSON (max 10MB)")
+    notebook_kernel: Optional[str] = Field(None, description="Kernel: python3, javascript, or sql")
 
     video_source: Optional[str] = Field(None, pattern="^(minio|youtube|vimeo)$")
     video_url: Optional[str] = Field(None, max_length=500)
-    video_duration_seconds: Optional[int] = Field(None, ge=0)
+    video_duration_seconds: Optional[int] = Field(None, ge=0, le=86400, description="Duration in seconds (max 24h)")
     video_thumbnail_url: Optional[str] = Field(None, max_length=500)
 
     attachments: Optional[List[Dict[str, str]]] = None
+
+    @field_validator('notebook_kernel')
+    @classmethod
+    def validate_notebook_kernel(cls, v: Optional[str]) -> Optional[str]:
+        """Validate notebook kernel type"""
+        if v is None:
+            return v
+        allowed_kernels = {'python3', 'javascript', 'sql'}
+        if v not in allowed_kernels:
+            raise ValueError(f"notebook_kernel must be one of {allowed_kernels}, got '{v}'")
+        return v
+
+    @field_validator('notebook_data')
+    @classmethod
+    def validate_notebook_data_size(cls, v: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        """Validate notebook data size (max 10MB)"""
+        if v is None:
+            return v
+        import json
+        data_str = json.dumps(v)
+        if len(data_str) > 10 * 1024 * 1024:  # 10MB
+            raise ValueError("notebook_data exceeds 10MB limit")
+        return v
 
 
 class LearningTopic(LearningTopicBase):
@@ -325,11 +371,37 @@ class TopicProgress(TopicProgressBase):
 # ============================================================================
 
 class NotebookExecutionRequest(BaseModel):
-    """Schema for executing notebook code"""
+    """
+    Schema for executing notebook code
+
+    Security validations:
+    - Code length: 1-50,000 characters (prevents DoS)
+    - Cell index: 0-999 (reasonable limit)
+    - Kernel type: Only python3, javascript, sql allowed
+    """
     topic_id: UUID
-    cell_index: int = Field(..., ge=0)
-    code: str
-    kernel_type: str = Field(default="python3", max_length=50)
+    cell_index: int = Field(..., ge=0, lt=1000, description="Cell index (0-999)")
+    code: str = Field(
+        ...,
+        min_length=1,
+        max_length=50000,
+        description="Code to execute (max 50KB)"
+    )
+    kernel_type: str = Field(
+        default="python3",
+        description="Kernel type: python3, javascript, or sql"
+    )
+
+    @field_validator('kernel_type')
+    @classmethod
+    def validate_kernel_type(cls, v: str) -> str:
+        """Validate kernel type is one of allowed values"""
+        allowed_kernels = {'python3', 'javascript', 'sql'}
+        if v not in allowed_kernels:
+            raise ValueError(
+                f"kernel_type must be one of {allowed_kernels}, got '{v}'"
+            )
+        return v
 
 
 class NotebookExecutionResponse(BaseModel):

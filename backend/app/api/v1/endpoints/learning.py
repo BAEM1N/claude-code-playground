@@ -2,7 +2,7 @@
 Learning Module System API Endpoints
 """
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -11,7 +11,9 @@ from datetime import datetime
 
 from ....core.database import get_db
 from ....api.deps import get_current_active_user
+from ....core.rate_limit import RateLimiter, get_rate_limiter
 from ....services.jupyter_service import execute_code
+from ....services.code_validator import mask_sensitive_data
 from ....models.learning import (
     LearningTrack,
     LearningModule,
@@ -585,6 +587,7 @@ async def update_topic_progress(
 
 @router.post("/topics/{topic_id}/execute", response_model=NotebookExecutionResponse, status_code=status.HTTP_200_OK)
 async def execute_notebook_cell(
+    request: Request,
     topic_id: UUID,
     execution_request: NotebookExecutionRequest,
     db: AsyncSession = Depends(get_db),
@@ -595,17 +598,54 @@ async def execute_notebook_cell(
 
     Supports Python, JavaScript, and SQL kernels.
     Execution results are saved to database for tracking and debugging.
+
+    Authorization:
+    - User must have access to the topic's track (published or owner)
+    - Topic must be published or user must be track owner
+
+    Rate Limits:
+    - 10 requests per minute per user
+    - 100 requests per hour per user
     """
+    # Rate limiting
+    rate_limiter_minute = get_rate_limiter("10/minute")
+    rate_limiter_hour = get_rate_limiter("100/hour")
+    await rate_limiter_minute.check_rate_limit(request)
+    await rate_limiter_hour.check_rate_limit(request)
+
     user_id = UUID(current_user["id"])
 
-    # Verify topic exists and is a notebook type
-    query = select(LearningTopic).where(LearningTopic.id == topic_id)
+    # Verify topic exists and load with full hierarchy for authorization
+    query = (
+        select(LearningTopic, LearningChapter, LearningModule, LearningTrack)
+        .join(LearningChapter, LearningTopic.chapter_id == LearningChapter.id)
+        .join(LearningModule, LearningChapter.module_id == LearningModule.id)
+        .join(LearningTrack, LearningModule.track_id == LearningTrack.id)
+        .where(LearningTopic.id == topic_id)
+    )
     result = await db.execute(query)
-    topic = result.scalar_one_or_none()
+    row = result.one_or_none()
 
-    if not topic:
+    if not row:
         raise HTTPException(status_code=404, detail="Topic not found")
 
+    topic, chapter, module, track = row
+
+    # Authorization check: Track must be published OR user must be the creator
+    if not track.is_published and track.created_by != user_id:
+        raise HTTPException(
+            status_code=403,
+            detail="You don't have permission to access this topic. The track is not published and you are not the owner."
+        )
+
+    # Additional check: Topic itself must be published OR user is track owner
+    if not topic.is_published and track.created_by != user_id:
+        raise HTTPException(
+            status_code=403,
+            detail="This topic is not published yet."
+        )
+
+    # Verify content type is notebook
     if topic.content_type != "notebook":
         raise HTTPException(
             status_code=400,
@@ -620,12 +660,13 @@ async def execute_notebook_cell(
         user_id=str(user_id)
     )
 
-    # Save execution to database for tracking
+    # Save execution to database for tracking (mask sensitive data)
+    masked_code = mask_sensitive_data(execution_request.code)
     execution_record = NotebookExecution(
         topic_id=topic_id,
         user_id=user_id,
         cell_index=execution_request.cell_index,
-        code=execution_request.code,
+        code=masked_code,  # Store masked version to protect sensitive data
         kernel_type=execution_request.kernel_type,
         output=execution_result.get("output"),
         error=execution_result.get("error"),

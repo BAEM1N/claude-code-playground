@@ -30,8 +30,15 @@ import os
 import json
 import asyncio
 import aiohttp
+import logging
 from typing import Optional, Dict, Any
 from datetime import datetime
+
+from .code_validator import validate_code_safety
+
+# Configure logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class JupyterExecutionService:
@@ -40,8 +47,18 @@ class JupyterExecutionService:
     def __init__(self):
         self.gateway_url = os.getenv("JUPYTER_GATEWAY_URL", "http://localhost:8888")
         self.timeout = int(os.getenv("JUPYTER_TIMEOUT", "30"))
-        self.max_output_size = int(os.getenv("JUPYTER_MAX_OUTPUT_SIZE", str(1024 * 1024)))  # 1MB
+        # Reduced from 1MB to 100KB for better security and performance
+        self.max_output_size = int(os.getenv("JUPYTER_MAX_OUTPUT_SIZE", str(100 * 1024)))  # 100KB
+
+        # Kernel management
         self.active_kernels: Dict[str, str] = {}  # topic_id -> kernel_id mapping
+        self.kernel_created_at: Dict[str, datetime] = {}  # kernel_id -> creation time
+        self.kernel_last_used: Dict[str, datetime] = {}  # kernel_id -> last used time
+
+        # Limits and TTL
+        self.max_kernels = int(os.getenv("MAX_KERNELS", "100"))  # Maximum active kernels
+        self.kernel_ttl = int(os.getenv("KERNEL_TTL_SECONDS", "3600"))  # 1 hour
+        self.kernel_idle_timeout = int(os.getenv("KERNEL_IDLE_TIMEOUT", "1800"))  # 30 minutes
 
     async def execute_code(
         self,
@@ -70,10 +87,25 @@ class JupyterExecutionService:
             }
         """
         start_time = datetime.now()
+        logger.info(f"Executing code for user={user_id}, topic={topic_id}, kernel={kernel_type}")
 
         try:
+            # Validate code for security issues
+            try:
+                validate_code_safety(code, kernel_type)
+            except ValueError as e:
+                logger.warning(f"Code validation failed for user={user_id}: {e}")
+                return {
+                    "output": None,
+                    "error": f"Security validation failed: {e}",
+                    "execution_status": "forbidden",
+                    "execution_time_ms": 0,
+                    "executed_at": datetime.utcnow().isoformat()
+                }
+
             # Get or create kernel
             kernel_id = await self._get_or_create_kernel(kernel_type, topic_id)
+            logger.debug(f"Using kernel {kernel_id} for execution")
 
             # Execute code
             result = await self._execute_in_kernel(kernel_id, code)
@@ -81,7 +113,7 @@ class JupyterExecutionService:
             # Calculate execution time
             execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
 
-            return {
+            execution_result = {
                 "output": result.get("output", ""),
                 "error": result.get("error"),
                 "execution_status": result.get("status", "success"),
@@ -89,7 +121,15 @@ class JupyterExecutionService:
                 "executed_at": datetime.utcnow().isoformat()
             }
 
+            if result.get("status") == "error":
+                logger.warning(f"Code execution failed for user={user_id}: {result.get('error')}")
+            else:
+                logger.info(f"Code execution succeeded for user={user_id} in {execution_time_ms}ms")
+
+            return execution_result
+
         except asyncio.TimeoutError:
+            logger.error(f"Execution timed out after {self.timeout}s for user={user_id}")
             return {
                 "output": None,
                 "error": f"Execution timed out after {self.timeout} seconds",
@@ -98,6 +138,7 @@ class JupyterExecutionService:
                 "executed_at": datetime.utcnow().isoformat()
             }
         except Exception as e:
+            logger.error(f"Unexpected error during execution for user={user_id}: {type(e).__name__}: {e}", exc_info=True)
             return {
                 "output": None,
                 "error": str(e),
@@ -106,17 +147,77 @@ class JupyterExecutionService:
                 "executed_at": datetime.utcnow().isoformat()
             }
 
+    async def _cleanup_old_kernels(self):
+        """Cleanup old and idle kernels to prevent resource exhaustion"""
+        now = datetime.now()
+        kernels_to_remove = []
+
+        # Find kernels to remove
+        for topic_id, kernel_id in self.active_kernels.items():
+            created_at = self.kernel_created_at.get(kernel_id)
+            last_used = self.kernel_last_used.get(kernel_id, created_at)
+
+            # Remove if kernel exceeded TTL
+            if created_at and (now - created_at).total_seconds() > self.kernel_ttl:
+                logger.info(f"Kernel {kernel_id} exceeded TTL ({self.kernel_ttl}s), shutting down")
+                kernels_to_remove.append((topic_id, kernel_id, "ttl_exceeded"))
+                continue
+
+            # Remove if kernel is idle too long
+            if last_used and (now - last_used).total_seconds() > self.kernel_idle_timeout:
+                logger.info(f"Kernel {kernel_id} idle for {self.kernel_idle_timeout}s, shutting down")
+                kernels_to_remove.append((topic_id, kernel_id, "idle_timeout"))
+                continue
+
+        # Shutdown and remove kernels
+        for topic_id, kernel_id, reason in kernels_to_remove:
+            await self.shutdown_kernel(kernel_id)
+            if topic_id in self.active_kernels:
+                del self.active_kernels[topic_id]
+            if kernel_id in self.kernel_created_at:
+                del self.kernel_created_at[kernel_id]
+            if kernel_id in self.kernel_last_used:
+                del self.kernel_last_used[kernel_id]
+
+        if kernels_to_remove:
+            logger.info(f"Cleaned up {len(kernels_to_remove)} kernels")
+
     async def _get_or_create_kernel(self, kernel_type: str, topic_id: Optional[str]) -> str:
         """Get existing kernel or create a new one"""
+        # Cleanup old kernels periodically
+        await self._cleanup_old_kernels()
+
         # Reuse kernel for the same topic
         if topic_id and topic_id in self.active_kernels:
             kernel_id = self.active_kernels[topic_id]
             # Verify kernel is still alive
             if await self._is_kernel_alive(kernel_id):
+                # Update last used time
+                self.kernel_last_used[kernel_id] = datetime.now()
+                logger.debug(f"Reusing kernel {kernel_id} for topic {topic_id}")
                 return kernel_id
+            else:
+                # Kernel is dead, remove it
+                logger.warning(f"Kernel {kernel_id} is not alive, removing from cache")
+                del self.active_kernels[topic_id]
+                if kernel_id in self.kernel_created_at:
+                    del self.kernel_created_at[kernel_id]
+                if kernel_id in self.kernel_last_used:
+                    del self.kernel_last_used[kernel_id]
+
+        # Check kernel limit before creating new one
+        if len(self.active_kernels) >= self.max_kernels:
+            logger.error(f"Maximum kernel limit reached: {self.max_kernels}")
+            raise Exception(
+                f"Maximum kernel limit ({self.max_kernels}) reached. "
+                "Please try again later or contact support."
+            )
 
         # Create new kernel
         kernel_id = await self._create_kernel(kernel_type)
+        now = datetime.now()
+        self.kernel_created_at[kernel_id] = now
+        self.kernel_last_used[kernel_id] = now
 
         if topic_id:
             self.active_kernels[topic_id] = kernel_id
@@ -125,16 +226,31 @@ class JupyterExecutionService:
 
     async def _create_kernel(self, kernel_type: str) -> str:
         """Create a new Jupyter kernel"""
-        async with aiohttp.ClientSession() as session:
-            url = f"{self.gateway_url}/api/kernels"
-            payload = {"name": kernel_type}
+        logger.info(f"Creating new kernel of type: {kernel_type}")
+        try:
+            async with aiohttp.ClientSession() as session:
+                url = f"{self.gateway_url}/api/kernels"
+                payload = {"name": kernel_type}
 
-            async with session.post(url, json=payload, timeout=10) as response:
-                if response.status != 201:
-                    raise Exception(f"Failed to create kernel: {response.status}")
+                async with session.post(url, json=payload, timeout=10) as response:
+                    if response.status != 201:
+                        error_text = await response.text()
+                        logger.error(f"Failed to create kernel {kernel_type}: status={response.status}, error={error_text}")
+                        raise Exception(f"Failed to create kernel: {response.status} - {error_text}")
 
-                data = await response.json()
-                return data["id"]
+                    data = await response.json()
+                    kernel_id = data["id"]
+                    logger.info(f"Successfully created kernel {kernel_id} of type {kernel_type}")
+                    return kernel_id
+        except aiohttp.ClientError as e:
+            logger.error(f"Network error creating kernel {kernel_type}: {type(e).__name__}: {e}")
+            raise Exception(f"Network error creating kernel: {e}")
+        except asyncio.TimeoutError:
+            logger.error(f"Timeout creating kernel {kernel_type}")
+            raise Exception("Timeout creating kernel")
+        except Exception as e:
+            logger.error(f"Unexpected error creating kernel {kernel_type}: {type(e).__name__}: {e}")
+            raise
 
     async def _is_kernel_alive(self, kernel_id: str) -> bool:
         """Check if kernel is still alive"""
@@ -142,8 +258,18 @@ class JupyterExecutionService:
             async with aiohttp.ClientSession() as session:
                 url = f"{self.gateway_url}/api/kernels/{kernel_id}"
                 async with session.get(url, timeout=5) as response:
-                    return response.status == 200
-        except:
+                    is_alive = response.status == 200
+                    if not is_alive:
+                        logger.debug(f"Kernel {kernel_id} status check returned {response.status}")
+                    return is_alive
+        except aiohttp.ClientError as e:
+            logger.warning(f"Failed to check kernel {kernel_id}: {type(e).__name__}: {e}")
+            return False
+        except asyncio.TimeoutError:
+            logger.warning(f"Timeout checking kernel {kernel_id}")
+            return False
+        except Exception as e:
+            logger.error(f"Unexpected error checking kernel {kernel_id}: {type(e).__name__}: {e}")
             return False
 
     async def _execute_in_kernel(self, kernel_id: str, code: str) -> Dict[str, Any]:
@@ -191,60 +317,101 @@ class JupyterExecutionService:
         output_lines = []
         error_lines = []
 
-        # Parse different message types
-        for msg in result.get("content", {}).get("outputs", []):
-            msg_type = msg.get("output_type")
+        try:
+            # Safely access nested dictionary
+            content = result.get("content")
+            if not content or not isinstance(content, dict):
+                logger.warning(f"Invalid result format: missing or invalid 'content' field")
+                return {
+                    "output": None,
+                    "error": "Invalid execution result format",
+                    "status": "error"
+                }
 
-            if msg_type == "stream":
-                # Standard output/error
-                text = msg.get("text", "")
-                if isinstance(text, list):
-                    text = "".join(text)
-                output_lines.append(text)
+            outputs = content.get("outputs", [])
+            if not isinstance(outputs, list):
+                logger.warning(f"Invalid result format: 'outputs' is not a list")
+                outputs = []
 
-            elif msg_type == "execute_result" or msg_type == "display_data":
-                # Execution result or display
-                data = msg.get("data", {})
-                if "text/plain" in data:
-                    text = data["text/plain"]
+            # Parse different message types
+            for msg in outputs:
+                if not isinstance(msg, dict):
+                    continue
+
+                msg_type = msg.get("output_type")
+
+                if msg_type == "stream":
+                    # Standard output/error
+                    text = msg.get("text", "")
                     if isinstance(text, list):
                         text = "".join(text)
-                    output_lines.append(text)
+                    output_lines.append(str(text))
 
-            elif msg_type == "error":
-                # Error output
-                ename = msg.get("ename", "Error")
-                evalue = msg.get("evalue", "")
-                traceback = msg.get("traceback", [])
-                error_lines.append(f"{ename}: {evalue}")
-                if traceback:
-                    error_lines.extend(traceback)
+                elif msg_type == "execute_result" or msg_type == "display_data":
+                    # Execution result or display
+                    data = msg.get("data", {})
+                    if isinstance(data, dict) and "text/plain" in data:
+                        text = data["text/plain"]
+                        if isinstance(text, list):
+                            text = "".join(text)
+                        output_lines.append(str(text))
 
-        # Combine outputs
-        output = "\n".join(output_lines) if output_lines else None
-        error = "\n".join(error_lines) if error_lines else None
+                elif msg_type == "error":
+                    # Error output
+                    ename = msg.get("ename", "Error")
+                    evalue = msg.get("evalue", "")
+                    traceback = msg.get("traceback", [])
+                    error_lines.append(f"{ename}: {evalue}")
+                    if isinstance(traceback, list):
+                        error_lines.extend(str(line) for line in traceback)
 
-        # Truncate if too large
-        if output and len(output) > self.max_output_size:
-            output = output[:self.max_output_size] + "\n... (output truncated)"
+            # Combine outputs
+            output = "\n".join(output_lines) if output_lines else None
+            error = "\n".join(error_lines) if error_lines else None
 
-        if error and len(error) > self.max_output_size:
-            error = error[:self.max_output_size] + "\n... (error truncated)"
+            # Truncate if too large
+            if output and len(output) > self.max_output_size:
+                output = output[:self.max_output_size] + "\n... (output truncated)"
+                logger.warning(f"Output truncated: exceeded {self.max_output_size} bytes")
 
-        return {
-            "output": output,
-            "error": error,
-            "status": "error" if error else "success"
-        }
+            if error and len(error) > self.max_output_size:
+                error = error[:self.max_output_size] + "\n... (error truncated)"
+                logger.warning(f"Error output truncated: exceeded {self.max_output_size} bytes")
 
-    async def shutdown_kernel(self, kernel_id: str):
+            return {
+                "output": output,
+                "error": error,
+                "status": "error" if error else "success"
+            }
+        except Exception as e:
+            logger.error(f"Error parsing execution result: {type(e).__name__}: {e}", exc_info=True)
+            return {
+                "output": None,
+                "error": f"Failed to parse execution result: {e}",
+                "status": "error"
+            }
+
+    async def shutdown_kernel(self, kernel_id: str) -> bool:
         """Shutdown a specific kernel"""
+        logger.info(f"Shutting down kernel {kernel_id}")
         try:
             async with aiohttp.ClientSession() as session:
                 url = f"{self.gateway_url}/api/kernels/{kernel_id}"
                 async with session.delete(url, timeout=5) as response:
-                    return response.status == 204
-        except:
+                    success = response.status == 204
+                    if success:
+                        logger.info(f"Successfully shut down kernel {kernel_id}")
+                    else:
+                        logger.warning(f"Failed to shut down kernel {kernel_id}: status={response.status}")
+                    return success
+        except aiohttp.ClientError as e:
+            logger.error(f"Network error shutting down kernel {kernel_id}: {type(e).__name__}: {e}")
+            return False
+        except asyncio.TimeoutError:
+            logger.error(f"Timeout shutting down kernel {kernel_id}")
+            return False
+        except Exception as e:
+            logger.error(f"Unexpected error shutting down kernel {kernel_id}: {type(e).__name__}: {e}")
             return False
 
     async def shutdown_topic_kernel(self, topic_id: str):
@@ -279,9 +446,11 @@ class SimpleExecutionService:
         import subprocess
         import sys
 
+        logger.warning(f"Using SimpleExecutionService (development only) for user={user_id}, topic={topic_id}")
         start_time = datetime.now()
 
         if kernel_type != "python3":
+            logger.error(f"Unsupported kernel type in simple mode: {kernel_type}")
             return {
                 "output": None,
                 "error": f"Kernel type '{kernel_type}' not supported in simple mode. Only Python is supported.",
@@ -290,8 +459,22 @@ class SimpleExecutionService:
                 "executed_at": datetime.utcnow().isoformat()
             }
 
+        # Validate code for security issues
+        try:
+            validate_code_safety(code, kernel_type)
+        except ValueError as e:
+            logger.warning(f"Code validation failed in simple execution for user={user_id}: {e}")
+            return {
+                "output": None,
+                "error": f"Security validation failed: {e}",
+                "execution_status": "forbidden",
+                "execution_time_ms": 0,
+                "executed_at": datetime.utcnow().isoformat()
+            }
+
         try:
             # Execute code in subprocess
+            logger.debug(f"Executing code via subprocess for user={user_id}")
             result = subprocess.run(
                 [sys.executable, "-c", code],
                 capture_output=True,
@@ -303,6 +486,7 @@ class SimpleExecutionService:
             execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
 
             if result.returncode == 0:
+                logger.info(f"Simple execution succeeded for user={user_id} in {execution_time_ms}ms")
                 return {
                     "output": result.stdout or "(no output)",
                     "error": None,
@@ -311,6 +495,7 @@ class SimpleExecutionService:
                     "executed_at": datetime.utcnow().isoformat()
                 }
             else:
+                logger.warning(f"Simple execution failed for user={user_id}: {result.stderr}")
                 return {
                     "output": result.stdout or None,
                     "error": result.stderr or "Execution failed",
@@ -320,6 +505,7 @@ class SimpleExecutionService:
                 }
 
         except subprocess.TimeoutExpired:
+            logger.error(f"Simple execution timed out for user={user_id}")
             return {
                 "output": None,
                 "error": "Execution timed out after 30 seconds",
@@ -328,6 +514,7 @@ class SimpleExecutionService:
                 "executed_at": datetime.utcnow().isoformat()
             }
         except Exception as e:
+            logger.error(f"Unexpected error in simple execution for user={user_id}: {type(e).__name__}: {e}", exc_info=True)
             return {
                 "output": None,
                 "error": str(e),

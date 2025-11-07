@@ -7,9 +7,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from uuid import UUID
+from datetime import datetime
 
 from ....core.database import get_db
 from ....api.deps import get_current_active_user
+from ....services.jupyter_service import execute_code
 from ....models.learning import (
     LearningTrack,
     LearningModule,
@@ -578,7 +580,7 @@ async def update_topic_progress(
 
 
 # ============================================================================
-# Notebook Execution Endpoints (Placeholder for Phase 4)
+# Notebook Execution Endpoints (Jupyter Kernel Gateway)
 # ============================================================================
 
 @router.post("/topics/{topic_id}/execute", response_model=NotebookExecutionResponse, status_code=status.HTTP_200_OK)
@@ -589,15 +591,73 @@ async def execute_notebook_cell(
     current_user: dict = Depends(get_current_active_user)
 ):
     """
-    Execute a notebook cell (Jupyter Kernel)
+    Execute a notebook cell using Jupyter Kernel Gateway
 
-    TODO: Implement Jupyter Kernel Gateway integration
-    This is a placeholder that will be implemented in Phase 4
+    Supports Python, JavaScript, and SQL kernels.
+    Execution results are saved to database for tracking and debugging.
     """
-    # Placeholder response
-    raise HTTPException(
-        status_code=501,
-        detail="Notebook execution not yet implemented. Will be available in Phase 4."
+    user_id = UUID(current_user["id"])
+
+    # Verify topic exists and is a notebook type
+    query = select(LearningTopic).where(LearningTopic.id == topic_id)
+    result = await db.execute(query)
+    topic = result.scalar_one_or_none()
+
+    if not topic:
+        raise HTTPException(status_code=404, detail="Topic not found")
+
+    if topic.content_type != "notebook":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Topic is not a notebook (type: {topic.content_type})"
+        )
+
+    # Execute code using Jupyter service
+    execution_result = await execute_code(
+        code=execution_request.code,
+        kernel_type=execution_request.kernel_type,
+        topic_id=str(topic_id),
+        user_id=str(user_id)
+    )
+
+    # Save execution to database for tracking
+    execution_record = NotebookExecution(
+        topic_id=topic_id,
+        user_id=user_id,
+        cell_index=execution_request.cell_index,
+        code=execution_request.code,
+        kernel_type=execution_request.kernel_type,
+        output=execution_result.get("output"),
+        error=execution_result.get("error"),
+        execution_status=execution_result["execution_status"],
+        execution_time_ms=execution_result["execution_time_ms"],
+        executed_at=datetime.fromisoformat(execution_result["executed_at"])
+    )
+    db.add(execution_record)
+
+    # Update topic progress to in_progress if not already completed
+    progress_query = (
+        select(TopicProgress)
+        .where(TopicProgress.topic_id == topic_id)
+        .where(TopicProgress.user_id == user_id)
+    )
+    progress_result = await db.execute(progress_query)
+    progress = progress_result.scalar_one_or_none()
+
+    if progress and progress.status == TopicStatus.NOT_STARTED:
+        progress.status = TopicStatus.IN_PROGRESS
+        progress.started_at = datetime.utcnow()
+
+    await db.commit()
+    await db.refresh(execution_record)
+
+    return NotebookExecutionResponse(
+        execution_id=execution_record.id,
+        output=execution_record.output,
+        error=execution_record.error,
+        execution_status=execution_record.execution_status,
+        execution_time_ms=execution_record.execution_time_ms,
+        executed_at=execution_record.executed_at
     )
 
 

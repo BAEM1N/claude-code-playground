@@ -2,7 +2,7 @@
 API v1 router.
 """
 from fastapi import APIRouter
-from .endpoints import auth, courses, channels, messages, files, notifications, assignments, assignment_files, attendance, quiz, progress, calendar
+from .endpoints import auth, courses, channels, messages, files, notifications, assignments, assignment_files, attendance, quiz, progress, calendar, learning
 
 api_router = APIRouter()
 
@@ -18,3 +18,4 @@ api_router.include_router(attendance.router, prefix="/attendance", tags=["attend
 api_router.include_router(quiz.router, prefix="/quiz", tags=["quiz"])
 api_router.include_router(progress.router, prefix="/progress", tags=["progress"])
 api_router.include_router(calendar.router, prefix="/calendar", tags=["calendar"])
+api_router.include_router(learning.router, prefix="/learning", tags=["learning"])

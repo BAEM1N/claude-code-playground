@@ -12,6 +12,17 @@ from .attendance import AttendanceSession, AttendanceRecord
 from .quiz import Quiz, Question, QuizAttempt, Answer
 from .progress import LearningProgress, Achievement, LearningActivity, Milestone, MilestoneCompletion
 from .calendar import CalendarEvent, EventReminder, EventAttendee, PersonalEvent
+from .learning import (
+    LearningTrack,
+    LearningModule,
+    LearningChapter,
+    LearningTopic,
+    TopicProgress,
+    NotebookExecution,
+    ContentType,
+    TopicStatus,
+    VideoSource,
+)
 
 __all__ = [
     "UserProfile",
@@ -47,4 +58,13 @@ __all__ = [
     "EventReminder",
     "EventAttendee",
     "PersonalEvent",
+    "LearningTrack",
+    "LearningModule",
+    "LearningChapter",
+    "LearningTopic",
+    "TopicProgress",
+    "NotebookExecution",
+    "ContentType",
+    "TopicStatus",
+    "VideoSource",
 ]

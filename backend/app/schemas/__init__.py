@@ -13,6 +13,15 @@ from .assignment import (
     Grade, GradeCreate, GradeUpdate,
     SubmissionWithGrade, AssignmentWithStats, StudentAssignmentStatus
 )
+from .learning import (
+    LearningTrack, LearningTrackCreate, LearningTrackUpdate, LearningTrackWithModules,
+    LearningModule, LearningModuleCreate, LearningModuleUpdate, LearningModuleWithChapters,
+    LearningChapter, LearningChapterCreate, LearningChapterUpdate, LearningChapterWithTopics,
+    LearningTopic, LearningTopicCreate, LearningTopicUpdate,
+    TopicProgress, TopicProgressCreate, TopicProgressUpdate,
+    NotebookExecutionRequest, NotebookExecutionResponse,
+    TopicWithProgress, ModuleWithFullContent, TrackWithFullContent
+)
 
 __all__ = [
     "UserProfile",
@@ -53,4 +62,27 @@ __all__ = [
     "SubmissionWithGrade",
     "AssignmentWithStats",
     "StudentAssignmentStatus",
+    "LearningTrack",
+    "LearningTrackCreate",
+    "LearningTrackUpdate",
+    "LearningTrackWithModules",
+    "LearningModule",
+    "LearningModuleCreate",
+    "LearningModuleUpdate",
+    "LearningModuleWithChapters",
+    "LearningChapter",
+    "LearningChapterCreate",
+    "LearningChapterUpdate",
+    "LearningChapterWithTopics",
+    "LearningTopic",
+    "LearningTopicCreate",
+    "LearningTopicUpdate",
+    "TopicProgress",
+    "TopicProgressCreate",
+    "TopicProgressUpdate",
+    "NotebookExecutionRequest",
+    "NotebookExecutionResponse",
+    "TopicWithProgress",
+    "ModuleWithFullContent",
+    "TrackWithFullContent",
 ]

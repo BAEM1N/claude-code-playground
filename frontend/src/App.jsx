@@ -7,6 +7,18 @@ import { QueryClient, QueryClientProvider } from 'react-query';
 import { ReactQueryDevtools } from 'react-query/devtools';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
+// Assignment Pages
+import AssignmentsPage from './pages/AssignmentsPage';
+import AssignmentDetailPage from './pages/AssignmentDetailPage';
+import AssignmentFormPage from './pages/AssignmentFormPage';
+import SubmissionListPage from './pages/SubmissionListPage';
+
+// Priority 1 Feature Pages
+import AttendancePage from './pages/AttendancePage';
+import QuizPage from './pages/QuizPage';
+import ProgressPage from './pages/ProgressPage';
+import CalendarPage from './pages/CalendarPage';
+
 // Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -31,18 +43,6 @@ const DashboardPage = () => <div>Dashboard Page</div>;
 const CoursePage = () => <div>Course Page</div>;
 const ChatPage = () => <div>Chat Page</div>;
 const FilesPage = () => <div>Files Page</div>;
-
-// Assignment Pages
-import AssignmentsPage from './pages/AssignmentsPage';
-import AssignmentDetailPage from './pages/AssignmentDetailPage';
-import AssignmentFormPage from './pages/AssignmentFormPage';
-import SubmissionListPage from './pages/SubmissionListPage';
-
-// Priority 1 Feature Pages
-import AttendancePage from './pages/AttendancePage';
-import QuizPage from './pages/QuizPage';
-import ProgressPage from './pages/ProgressPage';
-import CalendarPage from './pages/CalendarPage';
 
 // Protected Route wrapper
 const ProtectedRoute = ({ children }) => {

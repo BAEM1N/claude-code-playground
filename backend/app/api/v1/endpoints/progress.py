@@ -23,7 +23,7 @@ from ....schemas.progress import (
     CourseProgressStatistics, LeaderboardEntry, ProgressComparison
 )
 from ....api.v1.endpoints.courses import get_or_404, update_model_from_schema
-from ....api.v1.endpoints.notifications import create_notification
+from ....services.notification_service import notification_service
 
 router = APIRouter()
 
@@ -119,7 +119,7 @@ async def award_achievement(
     if new_level > progress.level:
         progress.level = new_level
         # Notify level up
-        await create_notification(
+        await notification_service.create_notification(
             db=db,
             user_id=progress.student_id,
             notification_type="achievement",
@@ -130,7 +130,7 @@ async def award_achievement(
     await db.flush()
 
     # Notify achievement
-    await create_notification(
+    await notification_service.create_notification(
         db=db,
         user_id=progress.student_id,
         notification_type="achievement",

@@ -12,7 +12,7 @@ import string
 
 from ....core.database import get_db
 from ....core.security import get_current_user
-from ....api.deps import require_instructor_or_assistant
+from ....api.deps import require_instructor_or_assistant, require_course_member
 from ....api.utils.db_helpers import get_or_404, update_model_from_schema, soft_delete
 from ....models import AttendanceSession, AttendanceRecord, Course, CourseMember, UserProfile
 from ....schemas.attendance import (
@@ -26,7 +26,7 @@ from ....schemas.attendance import (
     AttendanceStats,
     StudentAttendanceStats,
 )
-from ....api.v1.endpoints.notifications import create_notification
+from ....services.notification_service import notification_service
 
 router = APIRouter()
 
@@ -76,7 +76,7 @@ async def create_attendance_session(
 
     # Create notifications
     for member in members:
-        await create_notification(
+        await notification_service.create_notification(
             db=db,
             user_id=member.user_id,
             notification_type="attendance",

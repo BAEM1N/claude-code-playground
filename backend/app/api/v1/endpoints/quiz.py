@@ -20,7 +20,7 @@ from ....schemas.quiz import (
     QuizAttemptCreate, QuizAttemptSubmit, QuizAttemptUpdate, QuizAttemptResponse,
     AnswerCreate, AnswerResponse, ManualGradeInput, QuizStatistics
 )
-from ....api.v1.endpoints.notifications import create_notification
+from ....services.notification_service import notification_service
 from ....api.v1.endpoints.courses import get_or_404, update_model_from_schema
 
 router = APIRouter()
@@ -126,7 +126,7 @@ async def create_quiz(
             )
         )
         for member in members.scalars().all():
-            await create_notification(
+            await notification_service.create_notification(
                 db=db,
                 user_id=member.user_id,
                 notification_type="quiz",

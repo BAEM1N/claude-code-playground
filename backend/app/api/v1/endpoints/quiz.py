@@ -10,7 +10,8 @@ from datetime import datetime
 import random
 
 from ....core.database import get_db
-from ....core.auth import get_current_user, require_instructor_or_assistant, require_course_member
+from ....core.security import get_current_user
+from ....api.deps import require_instructor_or_assistant, require_course_member
 from ....models.quiz import Quiz, Question, QuizAttempt, Answer
 from ....models.course import Course, CourseMember
 from ....schemas.quiz import (

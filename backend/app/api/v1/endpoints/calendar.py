@@ -9,7 +9,8 @@ from uuid import UUID
 from datetime import datetime, timedelta
 
 from ....core.database import get_db
-from ....core.auth import get_current_user, require_instructor_or_assistant
+from ....core.security import get_current_user
+from ....api.deps import require_instructor_or_assistant
 from ....models.calendar import CalendarEvent, EventReminder, EventAttendee, PersonalEvent
 from ....models.course import Course, CourseMember
 from ....schemas.calendar import (

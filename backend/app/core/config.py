@@ -4,8 +4,8 @@ Environment-specific configuration management.
 """
 import os
 from typing import List
-from pydantic_settings import BaseSettings
-from pydantic import AnyHttpUrl, validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import AnyHttpUrl, field_validator
 
 
 class BaseConfig(BaseSettings):
@@ -47,7 +47,8 @@ class BaseConfig(BaseSettings):
     # Set via environment variable (comma-separated): CORS_ORIGINS="http://example.com,http://app.example.com"
     CORS_ORIGINS: List[str] = []
 
-    @validator("CORS_ORIGINS", pre=True)
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
     def assemble_cors_origins(cls, v):
         if isinstance(v, str):
             return [i.strip() for i in v.split(",")]
@@ -78,9 +79,11 @@ class BaseConfig(BaseSettings):
     CACHE_MESSAGES_TTL: int = 600
     CACHE_NOTIFICATIONS_TTL: int = 300
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=True,
+        extra="ignore"
+    )
 
 
 class DevelopmentConfig(BaseConfig):

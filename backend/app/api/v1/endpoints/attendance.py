@@ -11,7 +11,8 @@ import secrets
 import string
 
 from ....core.database import get_db
-from ....core.auth import get_current_user, require_instructor_or_assistant
+from ....core.security import get_current_user
+from ....api.deps import require_instructor_or_assistant
 from ....api.utils.db_helpers import get_or_404, update_model_from_schema, soft_delete
 from ....models import AttendanceSession, AttendanceRecord, Course, CourseMember, UserProfile
 from ....schemas.attendance import (

@@ -336,3 +336,35 @@ export const getFileTypeCategory = (mimeTypeOrFilename) => {
 
   return 'document';
 };
+
+/**
+ * Format date with time (alias for formatDate)
+ * @param {string|Date} dateString - ISO date string or Date object
+ * @returns {string} Formatted date with time
+ */
+export const formatDateTime = (dateString) => {
+  return formatDate(dateString);
+};
+
+/**
+ * Format date for HTML input[type="datetime-local"]
+ * @param {string|Date} dateString - ISO date string or Date object  
+ * @returns {string} Formatted date for input (YYYY-MM-DDTHH:mm)
+ */
+export const formatDateForInput = (dateString) => {
+  if (!dateString) return '';
+  
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) {
+    return '';
+  }
+  
+  // Format as YYYY-MM-DDTHH:mm for datetime-local input
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};

@@ -3,9 +3,9 @@
  * Prevents sensitive data exposure in production
  */
 
-type LogLevel = 'error' | 'warn' | 'info' | 'debug';
+export type LogLevel = 'error' | 'warn' | 'info' | 'debug';
 
-interface LogData {
+export interface LogData {
   [key: string]: any;
 }
 
@@ -51,11 +51,12 @@ class Logger {
       console.error(`[ERROR] ${message}`, data);
     } else {
       // In production, send to error tracking service (e.g., Sentry)
-      const sanitized = this.sanitize(data);
+      // const sanitized = this.sanitize(data);
       // TODO: Integrate with error tracking service
       // Sentry.captureException(new Error(message), { extra: sanitized });
 
       // Still log to console but sanitized
+      this.sanitize(data); // Sanitize for potential future use
       console.error(`[ERROR] ${message}`);
     }
   }
@@ -67,7 +68,7 @@ class Logger {
     if (this.isDevelopment) {
       console.warn(`[WARN] ${message}`, data);
     } else {
-      const sanitized = this.sanitize(data);
+      this.sanitize(data); // Sanitize for potential future use
       console.warn(`[WARN] ${message}`);
     }
   }

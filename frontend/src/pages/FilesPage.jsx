@@ -11,7 +11,7 @@ import { useCourseRole } from '../hooks/useCourse';
 import FileUpload from '../components/common/FileUpload';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorAlert from '../components/common/ErrorAlert';
-import { formatBytes, formatDate } from '../utils/formatters';
+import { formatFileSize, formatDate } from '../utils/formatters';
 
 const FilesPage = () => {
   const { courseId } = useParams();
@@ -386,7 +386,7 @@ const FilesPage = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {file.size ? formatBytes(file.size) : '-'}
+                            {file.size ? formatFileSize(file.size) : '-'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {file.created_at ? formatDate(file.created_at) : '-'}

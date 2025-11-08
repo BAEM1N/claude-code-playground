@@ -85,6 +85,9 @@ export interface Submission {
   grade?: Grade;
 }
 
+// Alias for clarity in API usage
+export type AssignmentSubmission = Submission;
+
 export interface Grade {
   id: string;
   submission_id: string;
@@ -179,6 +182,9 @@ export interface Question {
   order?: number;
 }
 
+// Alias for clarity in API usage
+export type QuizQuestion = Question;
+
 export interface QuizAttempt {
   id: string;
   quiz_id: string;
@@ -187,6 +193,17 @@ export interface QuizAttempt {
   submitted_at?: string;
   score?: number;
   status?: 'in_progress' | 'submitted' | 'graded';
+}
+
+export interface QuizAnswer {
+  id: string;
+  attempt_id: string;
+  question_id: string;
+  answer_text?: string;
+  selected_option?: string;
+  is_correct?: boolean;
+  points_earned?: number;
+  feedback?: string;
 }
 
 // ============================================================================

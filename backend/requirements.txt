@@ -1,0 +1,45 @@
+# FastAPI and server
+fastapi==0.115.5
+uvicorn[standard]==0.38.0
+python-multipart==0.0.18
+python-jose[cryptography]==3.5.0
+passlib[bcrypt]==1.7.4
+
+# Database
+sqlalchemy==2.0.44
+alembic==1.17.1
+psycopg2-binary==2.9.10
+aiosqlite==0.20.0
+
+# Supabase
+supabase==2.18.0
+gotrue==2.11.0
+
+# Redis
+redis==7.0.1
+hiredis==3.0.0
+
+# MinIO/S3
+minio==7.2.18
+boto3==1.35.80
+
+# WebSocket
+websockets==15.0.1
+python-socketio==5.12.1
+
+# Utilities
+pydantic==2.12.3
+pydantic-settings==2.7.1
+python-dotenv==1.0.1
+httpx==0.28.1
+
+# Validation and serialization
+email-validator==2.2.0
+python-dateutil==2.9.0.post0
+
+# Development
+pytest==8.4.0
+pytest-asyncio==0.25.2
+black==24.10.0
+flake8==7.1.1
+mypy==1.14.1

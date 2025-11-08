@@ -131,31 +131,48 @@ async def health_check():
 @app.websocket("/ws/{course_id}")
 async def websocket_endpoint(
     websocket: WebSocket,
-    course_id: str,
-    token: str = None
+    course_id: str
 ):
     """
     WebSocket endpoint for real-time communication.
 
+    Security: Token must be sent in the first message to avoid exposure in logs.
+
+    First message format:
+    {
+        "type": "auth",
+        "token": "your-jwt-token"
+    }
+
     Args:
         websocket: WebSocket connection
         course_id: Course ID
-        token: Authentication token (query parameter)
     """
-    # Authenticate user
-    if not token:
-        await websocket.close(code=1008, reason="Missing authentication token")
-        return
+    # Accept connection first
+    await websocket.accept()
 
     try:
-        # Verify token (simplified - in production, use proper token verification)
-        from .core.security import verify_supabase_token
-        from fastapi.security import HTTPAuthorizationCredentials
+        # Wait for authentication message (with timeout)
+        import asyncio
+        auth_message = await asyncio.wait_for(
+            websocket.receive_json(),
+            timeout=5.0  # 5 second timeout
+        )
 
-        # Create credentials object
-        credentials = type('obj', (object,), {'credentials': token})
+        # Verify auth message format
+        if auth_message.get("type") != "auth":
+            await websocket.close(code=1008, reason="First message must be authentication")
+            return
+
+        token = auth_message.get("token")
+        if not token:
+            await websocket.close(code=1008, reason="Missing authentication token")
+            return
 
         # Verify token
+        from .core.security import verify_supabase_token
+
+        credentials = type('obj', (object,), {'credentials': token})
         payload = await verify_supabase_token(credentials)
         user_id = payload.get("sub")
 
@@ -163,6 +180,12 @@ async def websocket_endpoint(
             await websocket.close(code=1008, reason="Invalid token")
             return
 
+        # Send authentication success
+        await websocket.send_json({"type": "auth_success", "user_id": user_id})
+
+    except asyncio.TimeoutError:
+        await websocket.close(code=1008, reason="Authentication timeout")
+        return
     except Exception as e:
         print(f"Authentication error: {e}")
         await websocket.close(code=1008, reason="Authentication failed")

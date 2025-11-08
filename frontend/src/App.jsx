@@ -7,6 +7,13 @@ import { QueryClient, QueryClientProvider } from 'react-query';
 import { ReactQueryDevtools } from 'react-query/devtools';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
+// Core Pages
+import LoginPage from './pages/LoginPage';
+import DashboardPage from './pages/DashboardPage';
+import CoursePage from './pages/CoursePage';
+import ChatPage from './pages/ChatPage';
+import FilesPage from './pages/FilesPage';
+
 // Assignment Pages
 import AssignmentsPage from './pages/AssignmentsPage';
 import AssignmentDetailPage from './pages/AssignmentDetailPage';
@@ -36,13 +43,6 @@ const queryClient = new QueryClient({
     },
   },
 });
-
-// Placeholder components (to be implemented)
-const LoginPage = () => <div>Login Page</div>;
-const DashboardPage = () => <div>Dashboard Page</div>;
-const CoursePage = () => <div>Course Page</div>;
-const ChatPage = () => <div>Chat Page</div>;
-const FilesPage = () => <div>Files Page</div>;
 
 // Protected Route wrapper
 const ProtectedRoute = ({ children }) => {

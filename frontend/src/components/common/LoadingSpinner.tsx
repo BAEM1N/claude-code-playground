@@ -3,13 +3,28 @@
  */
 import React from 'react';
 
+export type SpinnerSize = 'sm' | 'md' | 'lg';
+
+export interface LoadingSpinnerProps {
+  /**
+   * Size of the spinner
+   * @default 'lg'
+   */
+  size?: SpinnerSize;
+
+  /**
+   * Optional loading message to display below spinner
+   */
+  message?: string;
+
+  /**
+   * Additional CSS classes
+   */
+  className?: string;
+}
+
 /**
  * Loading spinner with customizable size and optional message
- *
- * @param {Object} props
- * @param {'small'|'medium'|'large'} props.size - Spinner size (default: 'large')
- * @param {string} props.message - Optional loading message
- * @returns {JSX.Element}
  *
  * @example
  * // Basic usage
@@ -21,17 +36,21 @@ import React from 'react';
  *
  * @example
  * // Small size
- * <LoadingSpinner size="small" />
+ * <LoadingSpinner size="sm" />
  */
-export const LoadingSpinner = ({ size = 'large', message = '' }) => {
-  const sizeClasses = {
-    small: 'h-6 w-6',
-    medium: 'h-8 w-8',
-    large: 'h-12 w-12'
+export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
+  size = 'lg',
+  message,
+  className = ''
+}) => {
+  const sizeClasses: Record<SpinnerSize, string> = {
+    sm: 'h-6 w-6',
+    md: 'h-8 w-8',
+    lg: 'h-12 w-12'
   };
 
   return (
-    <div className="flex flex-col justify-center items-center py-12">
+    <div className={`flex flex-col justify-center items-center py-12 ${className}`}>
       <div
         className={`animate-spin rounded-full ${sizeClasses[size]} border-b-2 border-blue-600`}
         role="status"

@@ -3,36 +3,65 @@
  */
 import React from 'react';
 
+export interface ErrorAlertProps {
+  /**
+   * Error message to display
+   */
+  message: string;
+
+  /**
+   * Optional error title
+   * @default '오류'
+   */
+  title?: string;
+
+  /**
+   * Optional retry callback
+   */
+  onRetry?: () => void;
+
+  /**
+   * Optional close callback
+   */
+  onClose?: () => void;
+
+  /**
+   * Additional CSS classes
+   */
+  className?: string;
+}
+
 /**
- * Error alert with optional retry button
- *
- * @param {Object} props
- * @param {string} props.error - Error message to display
- * @param {Function} [props.onRetry] - Optional retry callback
- * @param {string} [props.title] - Optional error title
- * @returns {JSX.Element}
+ * Error alert with optional retry and close buttons
  *
  * @example
  * // Basic usage
- * <ErrorAlert error="데이터를 불러오는데 실패했습니다." />
+ * <ErrorAlert message="데이터를 불러오는데 실패했습니다." />
  *
  * @example
  * // With retry button
  * <ErrorAlert
- *   error="네트워크 오류가 발생했습니다."
+ *   message="네트워크 오류가 발생했습니다."
  *   onRetry={handleRetry}
  * />
  *
  * @example
- * // With custom title
+ * // With custom title and close button
  * <ErrorAlert
  *   title="저장 실패"
- *   error="파일을 저장할 수 없습니다."
+ *   message="파일을 저장할 수 없습니다."
+ *   onClose={handleClose}
  * />
  */
-export const ErrorAlert = ({ error, onRetry = null, title = '오류' }) => {
+export const ErrorAlert: React.FC<ErrorAlertProps> = ({
+  message,
+  title = '오류',
+  onRetry,
+  onClose,
+  className = ''
+}) => {
   return (
-    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+    <div className={`bg-red-50 border border-red-200 rounded-lg p-4 ${className}`}>
       <div className="flex items-start">
         {/* Error Icon */}
         <div className="flex-shrink-0">
@@ -56,7 +85,7 @@ export const ErrorAlert = ({ error, onRetry = null, title = '오류' }) => {
             {title}
           </h3>
           <div className="mt-1 text-sm text-red-700">
-            <p>{error}</p>
+            <p>{message}</p>
           </div>
 
           {/* Retry Button */}
@@ -86,13 +115,13 @@ export const ErrorAlert = ({ error, onRetry = null, title = '오류' }) => {
           )}
         </div>
 
-        {/* Close Button (optional) */}
-        {onRetry && (
+        {/* Close Button */}
+        {onClose && (
           <div className="ml-auto pl-3">
             <div className="-mx-1.5 -my-1.5">
               <button
                 type="button"
-                onClick={onRetry}
+                onClick={onClose}
                 className="inline-flex rounded-md p-1.5 text-red-500 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-red-50 focus:ring-red-600"
                 aria-label="닫기"
               >

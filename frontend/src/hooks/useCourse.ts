@@ -1,17 +1,24 @@
 /**
  * Course related hooks with React Query
  */
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useQuery, useMutation, useQueryClient, UseQueryResult, UseMutationResult } from 'react-query';
+import { AxiosError } from 'axios';
 import { coursesAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { Course, User } from '../types';
+
+interface UpdateCourseParams {
+  courseId: string;
+  courseData: Partial<Course>;
+}
 
 /**
  * Hook for fetching user's role in a specific course
  *
- * @param {string} courseId - Course ID
- * @returns {Object} { role, isLoading, error }
+ * @param courseId - Course ID
+ * @returns { role, isLoading, error }
  */
-export const useCourseRole = (courseId) => {
+export const useCourseRole = (courseId: string): UseQueryResult<string | null, AxiosError> => {
   const { user } = useAuth();
 
   return useQuery(
@@ -23,7 +30,7 @@ export const useCourseRole = (courseId) => {
 
       try {
         const { data } = await coursesAPI.getMembers(courseId);
-        const member = data.find((m) => m.user_id === user.id);
+        const member = data.find((m: any) => m.user_id === user.id);
         return member?.role || 'student';
       } catch (error) {
         console.error('Failed to fetch course role:', error);
@@ -42,14 +49,14 @@ export const useCourseRole = (courseId) => {
 /**
  * Hook for fetching a single course
  *
- * @param {string} courseId - Course ID
- * @returns {Object} { data: course, isLoading, error, refetch }
+ * @param courseId - Course ID
+ * @returns { data: course, isLoading, error, refetch }
  */
-export const useCourse = (courseId) => {
+export const useCourse = (courseId: string): UseQueryResult<Course, AxiosError> => {
   return useQuery(
     ['course', courseId],
     async () => {
-      const { data } = await coursesAPI.getCourse(courseId);
+      const { data } = await coursesAPI.getOne(courseId);
       return data;
     },
     {
@@ -62,9 +69,9 @@ export const useCourse = (courseId) => {
 /**
  * Hook for fetching all courses
  *
- * @returns {Object} { data: courses, isLoading, error, refetch }
+ * @returns { data: courses, isLoading, error, refetch }
  */
-export const useCourses = () => {
+export const useCourses = (): UseQueryResult<Course[], AxiosError> => {
   return useQuery(
     ['courses'],
     async () => {
@@ -80,10 +87,10 @@ export const useCourses = () => {
 /**
  * Hook for fetching course members
  *
- * @param {string} courseId - Course ID
- * @returns {Object} { data: members, isLoading, error, refetch }
+ * @param courseId - Course ID
+ * @returns { data: members, isLoading, error, refetch }
  */
-export const useCourseMembers = (courseId) => {
+export const useCourseMembers = (courseId: string): UseQueryResult<User[], AxiosError> => {
   return useQuery(
     ['courseMembers', courseId],
     async () => {
@@ -100,13 +107,13 @@ export const useCourseMembers = (courseId) => {
 /**
  * Hook for creating a course
  *
- * @returns {Object} useMutation object
+ * @returns useMutation object
  */
-export const useCreateCourse = () => {
+export const useCreateCourse = (): UseMutationResult<Course, AxiosError, Partial<Course>> => {
   const queryClient = useQueryClient();
 
   return useMutation(
-    (courseData) => coursesAPI.createCourse(courseData),
+    (courseData: Partial<Course>) => coursesAPI.create(courseData),
     {
       onSuccess: () => {
         // Invalidate and refetch courses list
@@ -119,15 +126,15 @@ export const useCreateCourse = () => {
 /**
  * Hook for updating a course
  *
- * @returns {Object} useMutation object
+ * @returns useMutation object
  */
-export const useUpdateCourse = () => {
+export const useUpdateCourse = (): UseMutationResult<Course, AxiosError, UpdateCourseParams> => {
   const queryClient = useQueryClient();
 
   return useMutation(
-    ({ courseId, courseData }) => coursesAPI.updateCourse(courseId, courseData),
+    ({ courseId, courseData }: UpdateCourseParams) => coursesAPI.update(courseId, courseData),
     {
-      onSuccess: (data, variables) => {
+      onSuccess: (_data, variables) => {
         // Invalidate specific course and courses list
         queryClient.invalidateQueries(['course', variables.courseId]);
         queryClient.invalidateQueries(['courses']);
@@ -139,13 +146,13 @@ export const useUpdateCourse = () => {
 /**
  * Hook for deleting a course
  *
- * @returns {Object} useMutation object
+ * @returns useMutation object
  */
-export const useDeleteCourse = () => {
+export const useDeleteCourse = (): UseMutationResult<void, AxiosError, string> => {
   const queryClient = useQueryClient();
 
   return useMutation(
-    (courseId) => coursesAPI.deleteCourse(courseId),
+    (courseId: string) => coursesAPI.delete(courseId),
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['courses']);

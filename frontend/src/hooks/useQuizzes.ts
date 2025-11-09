@@ -2,17 +2,45 @@
  * Quiz hooks with React Query
  * Handles quiz data fetching, caching, and mutations
  */
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useQuery, useMutation, useQueryClient, UseQueryResult, UseMutationResult } from 'react-query';
+import { AxiosError } from 'axios';
 import { quizAPI } from '../services/api';
+import { Quiz, QuizQuestion, QuizAttempt, QuizAnswer } from '../types';
+
+interface CreateQuestionParams {
+  quizId: string;
+  questionData: Partial<QuizQuestion>;
+}
+
+interface UpdateQuizParams {
+  quizId: string;
+  quizData: Partial<Quiz>;
+}
+
+interface UpdateQuestionParams {
+  questionId: string;
+  questionData: Partial<QuizQuestion>;
+}
+
+interface SubmitQuizParams {
+  attemptId: string;
+  answers: any;
+}
+
+interface TrackBehaviorParams {
+  attemptId: string;
+  behaviorData: any;
+}
+
+interface GradeAnswerParams {
+  answerId: string;
+  gradeData: { score: number; feedback?: string };
+}
 
 /**
  * Hook for fetching quizzes list
- *
- * @param {string} courseId - Course ID
- * @param {Object} params - Additional query parameters
- * @returns {Object} React Query result
  */
-export const useQuizzes = (courseId, params = {}) => {
+export const useQuizzes = (courseId: string, params: any = {}): UseQueryResult<Quiz[], AxiosError> => {
   return useQuery(
     ['quizzes', courseId, params],
     async () => {
@@ -21,39 +49,33 @@ export const useQuizzes = (courseId, params = {}) => {
     },
     {
       enabled: !!courseId,
-      staleTime: 2 * 60 * 1000, // 2분
-      cacheTime: 10 * 60 * 1000, // 10분
+      staleTime: 2 * 60 * 1000,
+      cacheTime: 10 * 60 * 1000,
     }
   );
 };
 
 /**
  * Hook for fetching a single quiz
- *
- * @param {string} quizId - Quiz ID
- * @returns {Object} React Query result
  */
-export const useQuiz = (quizId) => {
+export const useQuiz = (quizId: string): UseQueryResult<Quiz, AxiosError> => {
   return useQuery(
     ['quiz', quizId],
     async () => {
-      const { data } = await quizAPI.getQuiz(quizId);
+      const { data } = await quizAPI.getOne(quizId);
       return data;
     },
     {
       enabled: !!quizId,
-      staleTime: 5 * 60 * 1000, // 5분
+      staleTime: 5 * 60 * 1000,
     }
   );
 };
 
 /**
  * Hook for fetching quiz questions
- *
- * @param {string} quizId - Quiz ID
- * @returns {Object} React Query result
  */
-export const useQuizQuestions = (quizId) => {
+export const useQuizQuestions = (quizId: string): UseQueryResult<QuizQuestion[], AxiosError> => {
   return useQuery(
     ['quizQuestions', quizId],
     async () => {
@@ -62,18 +84,15 @@ export const useQuizQuestions = (quizId) => {
     },
     {
       enabled: !!quizId,
-      staleTime: 5 * 60 * 1000, // 5분
+      staleTime: 5 * 60 * 1000,
     }
   );
 };
 
 /**
  * Hook for fetching quiz attempts
- *
- * @param {string} quizId - Quiz ID
- * @returns {Object} React Query result
  */
-export const useQuizAttempts = (quizId) => {
+export const useQuizAttempts = (quizId: string): UseQueryResult<QuizAttempt[], AxiosError> => {
   return useQuery(
     ['quizAttempts', quizId],
     async () => {
@@ -82,18 +101,15 @@ export const useQuizAttempts = (quizId) => {
     },
     {
       enabled: !!quizId,
-      staleTime: 1 * 60 * 1000, // 1분 - 시도 정보는 자주 변경될 수 있음
+      staleTime: 1 * 60 * 1000,
     }
   );
 };
 
 /**
  * Hook for fetching a single quiz attempt
- *
- * @param {string} attemptId - Attempt ID
- * @returns {Object} React Query result
  */
-export const useQuizAttempt = (attemptId) => {
+export const useQuizAttempt = (attemptId: string): UseQueryResult<QuizAttempt, AxiosError> => {
   return useQuery(
     ['quizAttempt', attemptId],
     async () => {
@@ -102,18 +118,15 @@ export const useQuizAttempt = (attemptId) => {
     },
     {
       enabled: !!attemptId,
-      staleTime: 30 * 1000, // 30초 - 진행중인 시도는 실시간 업데이트 필요
+      staleTime: 30 * 1000,
     }
   );
 };
 
 /**
  * Hook for fetching quiz statistics
- *
- * @param {string} quizId - Quiz ID
- * @returns {Object} React Query result
  */
-export const useQuizStatistics = (quizId) => {
+export const useQuizStatistics = (quizId: string): UseQueryResult<any, AxiosError> => {
   return useQuery(
     ['quizStatistics', quizId],
     async () => {
@@ -122,24 +135,21 @@ export const useQuizStatistics = (quizId) => {
     },
     {
       enabled: !!quizId,
-      staleTime: 2 * 60 * 1000, // 2분
+      staleTime: 2 * 60 * 1000,
     }
   );
 };
 
 /**
  * Hook for creating a quiz
- *
- * @returns {Object} useMutation result
  */
-export const useCreateQuiz = () => {
+export const useCreateQuiz = (): UseMutationResult<Quiz, AxiosError, Partial<Quiz>> => {
   const queryClient = useQueryClient();
 
   return useMutation(
-    (quizData) => quizAPI.createQuiz(quizData),
+    (quizData: Partial<Quiz>) => quizAPI.create(quizData),
     {
-      onSuccess: (data) => {
-        // Invalidate quizzes list for this course
+      onSuccess: () => {
         queryClient.invalidateQueries(['quizzes']);
       },
     }
@@ -148,17 +158,14 @@ export const useCreateQuiz = () => {
 
 /**
  * Hook for updating a quiz
- *
- * @returns {Object} useMutation result
  */
-export const useUpdateQuiz = () => {
+export const useUpdateQuiz = (): UseMutationResult<Quiz, AxiosError, UpdateQuizParams> => {
   const queryClient = useQueryClient();
 
   return useMutation(
-    ({ quizId, quizData }) => quizAPI.updateQuiz(quizId, quizData),
+    ({ quizId, quizData }: UpdateQuizParams) => quizAPI.update(quizId, quizData),
     {
-      onSuccess: (data, variables) => {
-        // Invalidate specific quiz and quizzes list
+      onSuccess: (_data, variables) => {
         queryClient.invalidateQueries(['quiz', variables.quizId]);
         queryClient.invalidateQueries(['quizzes']);
       },
@@ -168,14 +175,12 @@ export const useUpdateQuiz = () => {
 
 /**
  * Hook for deleting a quiz
- *
- * @returns {Object} useMutation result
  */
-export const useDeleteQuiz = () => {
+export const useDeleteQuiz = (): UseMutationResult<void, AxiosError, string> => {
   const queryClient = useQueryClient();
 
   return useMutation(
-    (quizId) => quizAPI.deleteQuiz(quizId),
+    (quizId: string) => quizAPI.delete(quizId),
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['quizzes']);
@@ -186,17 +191,14 @@ export const useDeleteQuiz = () => {
 
 /**
  * Hook for creating a question
- *
- * @returns {Object} useMutation result
  */
-export const useCreateQuestion = () => {
+export const useCreateQuestion = (): UseMutationResult<QuizQuestion, AxiosError, CreateQuestionParams> => {
   const queryClient = useQueryClient();
 
   return useMutation(
-    ({ quizId, questionData }) => quizAPI.createQuestion(quizId, questionData),
+    ({ quizId, questionData }: CreateQuestionParams) => quizAPI.createQuestion(quizId, questionData),
     {
-      onSuccess: (data, variables) => {
-        // Invalidate questions list for this quiz
+      onSuccess: (_data, variables) => {
         queryClient.invalidateQueries(['quizQuestions', variables.quizId]);
         queryClient.invalidateQueries(['quiz', variables.quizId]);
       },
@@ -206,14 +208,12 @@ export const useCreateQuestion = () => {
 
 /**
  * Hook for updating a question
- *
- * @returns {Object} useMutation result
  */
-export const useUpdateQuestion = () => {
+export const useUpdateQuestion = (): UseMutationResult<QuizQuestion, AxiosError, UpdateQuestionParams> => {
   const queryClient = useQueryClient();
 
   return useMutation(
-    ({ questionId, questionData }) => quizAPI.updateQuestion(questionId, questionData),
+    ({ questionId, questionData }: UpdateQuestionParams) => quizAPI.updateQuestion(questionId, questionData),
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['quizQuestions']);
@@ -224,14 +224,12 @@ export const useUpdateQuestion = () => {
 
 /**
  * Hook for deleting a question
- *
- * @returns {Object} useMutation result
  */
-export const useDeleteQuestion = () => {
+export const useDeleteQuestion = (): UseMutationResult<void, AxiosError, string> => {
   const queryClient = useQueryClient();
 
   return useMutation(
-    (questionId) => quizAPI.deleteQuestion(questionId),
+    (questionId: string) => quizAPI.deleteQuestion(questionId),
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['quizQuestions']);
@@ -242,17 +240,14 @@ export const useDeleteQuestion = () => {
 
 /**
  * Hook for starting a quiz
- *
- * @returns {Object} useMutation result
  */
-export const useStartQuiz = () => {
+export const useStartQuiz = (): UseMutationResult<QuizAttempt, AxiosError, string> => {
   const queryClient = useQueryClient();
 
   return useMutation(
-    (quizId) => quizAPI.startQuiz(quizId),
+    (quizId: string) => quizAPI.startQuiz(quizId),
     {
-      onSuccess: (data, variables) => {
-        // Invalidate attempts list for this quiz
+      onSuccess: (_data, variables) => {
         queryClient.invalidateQueries(['quizAttempts', variables]);
       },
     }
@@ -261,17 +256,14 @@ export const useStartQuiz = () => {
 
 /**
  * Hook for submitting a quiz
- *
- * @returns {Object} useMutation result
  */
-export const useSubmitQuiz = () => {
+export const useSubmitQuiz = (): UseMutationResult<QuizAttempt, AxiosError, SubmitQuizParams> => {
   const queryClient = useQueryClient();
 
   return useMutation(
-    ({ attemptId, answers }) => quizAPI.submitQuiz(attemptId, answers),
+    ({ attemptId, answers }: SubmitQuizParams) => quizAPI.submitQuiz(attemptId, { answers }),
     {
-      onSuccess: (data, variables) => {
-        // Invalidate attempt and attempts list
+      onSuccess: (_data, variables) => {
         queryClient.invalidateQueries(['quizAttempt', variables.attemptId]);
         queryClient.invalidateQueries(['quizAttempts']);
         queryClient.invalidateQueries(['quizStatistics']);
@@ -282,12 +274,10 @@ export const useSubmitQuiz = () => {
 
 /**
  * Hook for tracking quiz behavior (anti-cheating)
- *
- * @returns {Object} useMutation result
  */
-export const useTrackBehavior = () => {
+export const useTrackBehavior = (): UseMutationResult<void, AxiosError, TrackBehaviorParams> => {
   return useMutation(
-    ({ attemptId, behaviorData }) => quizAPI.trackBehavior(attemptId, behaviorData),
+    ({ attemptId, behaviorData }: TrackBehaviorParams) => quizAPI.trackBehavior(attemptId, behaviorData),
     {
       // Don't invalidate queries - this is just tracking
     }
@@ -296,17 +286,14 @@ export const useTrackBehavior = () => {
 
 /**
  * Hook for grading an answer
- *
- * @returns {Object} useMutation result
  */
-export const useGradeAnswer = () => {
+export const useGradeAnswer = (): UseMutationResult<QuizAnswer, AxiosError, GradeAnswerParams> => {
   const queryClient = useQueryClient();
 
   return useMutation(
-    ({ answerId, gradeData }) => quizAPI.gradeAnswer(answerId, gradeData),
+    ({ answerId, gradeData }: GradeAnswerParams) => quizAPI.gradeAnswer(answerId, gradeData),
     {
       onSuccess: () => {
-        // Invalidate attempts and statistics
         queryClient.invalidateQueries(['quizAttempts']);
         queryClient.invalidateQueries(['quizAttempt']);
         queryClient.invalidateQueries(['quizStatistics']);

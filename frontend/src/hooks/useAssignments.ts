@@ -2,17 +2,47 @@
  * Assignment hooks with React Query
  * Refactored to use React Query for better caching and state management
  */
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useQuery, useMutation, useQueryClient, UseQueryResult, UseMutationResult } from 'react-query';
+import { AxiosError } from 'axios';
 import { assignmentsAPI } from '../services/api';
+import { Assignment, AssignmentSubmission, Grade } from '../types';
+
+// Query options for assignments
+interface AssignmentQueryParams {
+  include_unpublished?: boolean;
+}
+
+interface CreateAssignmentParams {
+  courseId: string;
+  assignmentData: Partial<Assignment>;
+}
+
+interface UpdateAssignmentParams {
+  assignmentId: string;
+  assignmentData: Partial<Assignment>;
+}
+
+interface SubmitAssignmentParams {
+  assignmentId: string;
+  submissionData: Partial<AssignmentSubmission>;
+}
+
+interface GradeSubmissionParams {
+  submissionId: string;
+  gradeData: Partial<Grade>;
+}
 
 /**
  * Hook for fetching assignments list
  *
- * @param {string} courseId - Course ID
- * @param {boolean} includeUnpublished - Include unpublished assignments (for instructors)
- * @returns {Object} React Query result
+ * @param courseId - Course ID
+ * @param includeUnpublished - Include unpublished assignments (for instructors)
+ * @returns React Query result
  */
-export const useAssignments = (courseId, includeUnpublished = false) => {
+export const useAssignments = (
+  courseId: string,
+  includeUnpublished: boolean = false
+): UseQueryResult<Assignment[], AxiosError> => {
   return useQuery(
     ['assignments', courseId, includeUnpublished],
     async () => {
@@ -33,7 +63,7 @@ export const useAssignments = (courseId, includeUnpublished = false) => {
  * Legacy wrapper for backward compatibility
  * Returns old API: { assignments, loading, error, refetch }
  */
-export const useAssignmentsLegacy = (courseId, includeUnpublished = false) => {
+export const useAssignmentsLegacy = (courseId: string, includeUnpublished: boolean = false) => {
   const query = useAssignments(courseId, includeUnpublished);
   return {
     assignments: query.data || [],
@@ -46,10 +76,10 @@ export const useAssignmentsLegacy = (courseId, includeUnpublished = false) => {
 /**
  * Hook for fetching single assignment
  *
- * @param {string} assignmentId - Assignment ID
- * @returns {Object} React Query result
+ * @param assignmentId - Assignment ID
+ * @returns React Query result
  */
-export const useAssignment = (assignmentId) => {
+export const useAssignment = (assignmentId: string): UseQueryResult<Assignment, AxiosError> => {
   return useQuery(
     ['assignment', assignmentId],
     async () => {
@@ -66,7 +96,7 @@ export const useAssignment = (assignmentId) => {
 /**
  * Legacy wrapper for useAssignment
  */
-export const useAssignmentLegacy = (assignmentId) => {
+export const useAssignmentLegacy = (assignmentId: string) => {
   const query = useAssignment(assignmentId);
   return {
     assignment: query.data || null,
@@ -78,10 +108,10 @@ export const useAssignmentLegacy = (assignmentId) => {
 /**
  * Hook for fetching assignment statistics
  *
- * @param {string} assignmentId - Assignment ID
- * @returns {Object} React Query result
+ * @param assignmentId - Assignment ID
+ * @returns React Query result
  */
-export const useAssignmentStats = (assignmentId) => {
+export const useAssignmentStats = (assignmentId: string): UseQueryResult<any, AxiosError> => {
   return useQuery(
     ['assignmentStats', assignmentId],
     async () => {
@@ -98,7 +128,7 @@ export const useAssignmentStats = (assignmentId) => {
 /**
  * Legacy wrapper for useAssignmentStats
  */
-export const useAssignmentStatsLegacy = (assignmentId) => {
+export const useAssignmentStatsLegacy = (assignmentId: string) => {
   const query = useAssignmentStats(assignmentId);
   return {
     stats: query.data || null,
@@ -110,17 +140,17 @@ export const useAssignmentStatsLegacy = (assignmentId) => {
 /**
  * Hook for fetching student's submission
  *
- * @param {string} assignmentId - Assignment ID
- * @returns {Object} React Query result
+ * @param assignmentId - Assignment ID
+ * @returns React Query result
  */
-export const useMySubmission = (assignmentId) => {
+export const useMySubmission = (assignmentId: string): UseQueryResult<AssignmentSubmission | null, AxiosError> => {
   return useQuery(
     ['mySubmission', assignmentId],
     async () => {
       try {
         const { data } = await assignmentsAPI.getMySubmission(assignmentId);
         return data;
-      } catch (err) {
+      } catch (err: any) {
         if (err.response?.status === 404) {
           return null; // No submission yet
         }
@@ -138,7 +168,7 @@ export const useMySubmission = (assignmentId) => {
 /**
  * Legacy wrapper for useMySubmission
  */
-export const useMySubmissionLegacy = (assignmentId) => {
+export const useMySubmissionLegacy = (assignmentId: string) => {
   const query = useMySubmission(assignmentId);
   return {
     submission: query.data || null,
@@ -151,10 +181,10 @@ export const useMySubmissionLegacy = (assignmentId) => {
 /**
  * Hook for fetching all submissions (instructor/assistant)
  *
- * @param {string} assignmentId - Assignment ID
- * @returns {Object} React Query result
+ * @param assignmentId - Assignment ID
+ * @returns React Query result
  */
-export const useSubmissions = (assignmentId) => {
+export const useSubmissions = (assignmentId: string): UseQueryResult<AssignmentSubmission[], AxiosError> => {
   return useQuery(
     ['submissions', assignmentId],
     async () => {
@@ -171,7 +201,7 @@ export const useSubmissions = (assignmentId) => {
 /**
  * Legacy wrapper for useSubmissions
  */
-export const useSubmissionsLegacy = (assignmentId) => {
+export const useSubmissionsLegacy = (assignmentId: string) => {
   const query = useSubmissions(assignmentId);
   return {
     submissions: query.data || [],
@@ -184,15 +214,15 @@ export const useSubmissionsLegacy = (assignmentId) => {
 /**
  * Hook for creating an assignment
  *
- * @returns {Object} useMutation result
+ * @returns useMutation result
  */
-export const useCreateAssignment = () => {
+export const useCreateAssignment = (): UseMutationResult<any, AxiosError, CreateAssignmentParams> => {
   const queryClient = useQueryClient();
 
   return useMutation(
-    ({ courseId, assignmentData }) => assignmentsAPI.createAssignment(courseId, assignmentData),
+    ({ courseId, assignmentData }: CreateAssignmentParams) => assignmentsAPI.createAssignment(courseId, assignmentData),
     {
-      onSuccess: (data, variables) => {
+      onSuccess: (_data, variables) => {
         // Invalidate assignments list for this course
         queryClient.invalidateQueries(['assignments', variables.courseId]);
       },
@@ -203,15 +233,15 @@ export const useCreateAssignment = () => {
 /**
  * Hook for updating an assignment
  *
- * @returns {Object} useMutation result
+ * @returns useMutation result
  */
-export const useUpdateAssignment = () => {
+export const useUpdateAssignment = (): UseMutationResult<any, AxiosError, UpdateAssignmentParams> => {
   const queryClient = useQueryClient();
 
   return useMutation(
-    ({ assignmentId, assignmentData }) => assignmentsAPI.updateAssignment(assignmentId, assignmentData),
+    ({ assignmentId, assignmentData }: UpdateAssignmentParams) => assignmentsAPI.updateAssignment(assignmentId, assignmentData),
     {
-      onSuccess: (data, variables) => {
+      onSuccess: (_data, variables) => {
         // Invalidate specific assignment and its list
         queryClient.invalidateQueries(['assignment', variables.assignmentId]);
         queryClient.invalidateQueries(['assignments']);
@@ -223,13 +253,13 @@ export const useUpdateAssignment = () => {
 /**
  * Hook for deleting an assignment
  *
- * @returns {Object} useMutation result
+ * @returns useMutation result
  */
-export const useDeleteAssignment = () => {
+export const useDeleteAssignment = (): UseMutationResult<any, AxiosError, string> => {
   const queryClient = useQueryClient();
 
   return useMutation(
-    (assignmentId) => assignmentsAPI.deleteAssignment(assignmentId),
+    (assignmentId: string) => assignmentsAPI.deleteAssignment(assignmentId),
     {
       onSuccess: () => {
         // Invalidate all assignments queries
@@ -242,15 +272,15 @@ export const useDeleteAssignment = () => {
 /**
  * Hook for submitting an assignment
  *
- * @returns {Object} useMutation result
+ * @returns useMutation result
  */
-export const useSubmitAssignment = () => {
+export const useSubmitAssignment = (): UseMutationResult<any, AxiosError, SubmitAssignmentParams> => {
   const queryClient = useQueryClient();
 
   return useMutation(
-    ({ assignmentId, submissionData }) => assignmentsAPI.submitAssignment(assignmentId, submissionData),
+    ({ assignmentId, submissionData }: SubmitAssignmentParams) => assignmentsAPI.submitAssignment(assignmentId, submissionData),
     {
-      onSuccess: (data, variables) => {
+      onSuccess: (_data, variables) => {
         // Invalidate my submission and assignment stats
         queryClient.invalidateQueries(['mySubmission', variables.assignmentId]);
         queryClient.invalidateQueries(['assignmentStats', variables.assignmentId]);
@@ -263,15 +293,15 @@ export const useSubmitAssignment = () => {
 /**
  * Hook for grading a submission
  *
- * @returns {Object} useMutation result
+ * @returns useMutation result
  */
-export const useGradeSubmission = () => {
+export const useGradeSubmission = (): UseMutationResult<any, AxiosError, GradeSubmissionParams> => {
   const queryClient = useQueryClient();
 
   return useMutation(
-    ({ submissionId, gradeData }) => assignmentsAPI.gradeSubmission(submissionId, gradeData),
+    ({ submissionId, gradeData }: GradeSubmissionParams) => assignmentsAPI.gradeSubmission(submissionId, gradeData),
     {
-      onSuccess: (data, variables) => {
+      onSuccess: () => {
         // Invalidate submissions and stats
         queryClient.invalidateQueries(['submissions']);
         queryClient.invalidateQueries(['assignmentStats']);

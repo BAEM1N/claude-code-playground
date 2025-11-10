@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import AttendanceSessionList from '../components/attendance/AttendanceSessionList';

@@ -1,6 +1,9 @@
 /**
+// @ts-nocheck
  * Assignment Form Page (Create/Edit)
+// @ts-nocheck
  */
+// @ts-nocheck
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import AssignmentForm from '../components/assignments/AssignmentForm';

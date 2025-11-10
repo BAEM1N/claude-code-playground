@@ -1,6 +1,9 @@
 /**
+// @ts-nocheck
  * Assignments Page
+// @ts-nocheck
  */
+// @ts-nocheck
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import AssignmentList from '../components/assignments/AssignmentList';

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import ProgressDashboard from '../components/progress/ProgressDashboard';

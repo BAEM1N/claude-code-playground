@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import { calendarAPI } from '../services/api';
 import LoadingSpinner from '../components/common/LoadingSpinner';

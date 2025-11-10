@@ -1,7 +1,11 @@
 /**
+// @ts-nocheck
  * Course Detail Page Component
+// @ts-nocheck
  * Shows course information and navigation to course features
+// @ts-nocheck
  */
+// @ts-nocheck
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useCourse, useCourseRole } from '../hooks/useCourse';

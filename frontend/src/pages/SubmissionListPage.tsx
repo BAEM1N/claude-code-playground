@@ -7,12 +7,14 @@ import SubmissionList from '../components/assignments/SubmissionList';
 import AssignmentStatsDashboard from '../components/assignments/AssignmentStatsDashboard';
 import { useAssignment, useAssignmentStats } from '../hooks/useAssignments';
 
-const SubmissionListPage = () => {
-  const { courseId, assignmentId } = useParams();
+type TabType = 'submissions' | 'statistics';
+
+const SubmissionListPage: React.FC = () => {
+  const { courseId, assignmentId } = useParams<{ courseId: string; assignmentId: string }>();
   const navigate = useNavigate();
-  const { assignment, loading: assignmentLoading } = useAssignment(assignmentId);
-  const { stats, loading: statsLoading } = useAssignmentStats(assignmentId);
-  const [activeTab, setActiveTab] = useState('submissions');
+  const { data: assignment, isLoading: assignmentLoading } = useAssignment(assignmentId || '');
+  const { data: stats, isLoading: statsLoading } = useAssignmentStats(assignmentId || '');
+  const [activeTab, setActiveTab] = useState<TabType>('submissions');
 
   if (assignmentLoading) {
     return (

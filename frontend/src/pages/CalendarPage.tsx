@@ -3,13 +3,26 @@ import { calendarAPI } from '../services/api';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorAlert from '../components/common/ErrorAlert';
 import CalendarGrid from '../components/calendar/CalendarGrid';
-import EventForm from '../components/calendar/EventForm';
 
-const CalendarPage = () => {
-  const [events, setEvents] = useState([]);
+type ViewType = 'list' | 'calendar';
+
+interface CalendarEvent {
+  id: string;
+  title: string;
+  description?: string;
+  start_time: string;
+  end_time: string;
+  all_day: boolean;
+  event_type: string;
+  location?: string;
+  meeting_url?: string;
+}
+
+const CalendarPage: React.FC = () => {
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [view, setView] = useState('list'); // 'list' or 'calendar'
+  const [error, setError] = useState<string | null>(null);
+  const [view, setView] = useState<ViewType>('list');
 
   useEffect(() => {
     fetchEvents();
@@ -23,7 +36,7 @@ const CalendarPage = () => {
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-      const response = await calendarAPI.getCalendarView({
+      const response = await (calendarAPI as any).getCalendarView({
         start_date: startOfMonth.toISOString(),
         end_date: endOfMonth.toISOString(),
       });
@@ -35,18 +48,20 @@ const CalendarPage = () => {
       ];
 
       // Sort by start time
-      allEvents.sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+      allEvents.sort((a: CalendarEvent, b: CalendarEvent) =>
+        new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+      );
 
       setEvents(allEvents);
-    } catch (err) {
+    } catch (err: any) {
       setError(err.response?.data?.detail || '일정을 불러오는데 실패했습니다.');
     } finally {
       setLoading(false);
     }
   };
 
-  const getEventTypeColor = (type) => {
-    const colors = {
+  const getEventTypeColor = (type: string): string => {
+    const colors: Record<string, string> = {
       class: 'bg-blue-100 text-blue-700 border-blue-300',
       assignment: 'bg-purple-100 text-purple-700 border-purple-300',
       quiz: 'bg-green-100 text-green-700 border-green-300',
@@ -58,8 +73,8 @@ const CalendarPage = () => {
     return colors[type] || 'bg-gray-100 text-gray-700 border-gray-300';
   };
 
-  const getEventTypeText = (type) => {
-    const types = {
+  const getEventTypeText = (type: string): string => {
+    const types: Record<string, string> = {
       class: '강의',
       assignment: '과제',
       quiz: '퀴즈',
@@ -160,10 +175,10 @@ const CalendarPage = () => {
       {view === 'calendar' && (
         <CalendarGrid
           events={events}
-          onDateClick={(date) => {
+          onDateClick={(date: Date) => {
             console.log('Date clicked:', date);
           }}
-          onEventClick={(event) => {
+          onEventClick={(event: CalendarEvent) => {
             console.log('Event clicked:', event);
           }}
         />

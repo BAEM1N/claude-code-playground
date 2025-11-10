@@ -4,11 +4,9 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import AssignmentDetail from '../components/assignments/AssignmentDetail';
-import { useAuth } from '../contexts/AuthContext';
 
-const AssignmentDetailPage = () => {
-  const { courseId, assignmentId } = useParams();
-  const { profile } = useAuth();
+const AssignmentDetailPage: React.FC = () => {
+  const { courseId, assignmentId } = useParams<{ courseId: string; assignmentId: string }>();
 
   // TODO: Get actual role from course membership
   const role = 'student';

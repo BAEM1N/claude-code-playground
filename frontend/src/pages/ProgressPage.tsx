@@ -2,8 +2,8 @@ import React from 'react';
 import { useParams } from 'react-router-dom';
 import ProgressDashboard from '../components/progress/ProgressDashboard';
 
-const ProgressPage = () => {
-  const { courseId } = useParams();
+const ProgressPage: React.FC = () => {
+  const { courseId } = useParams<{ courseId: string }>();
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

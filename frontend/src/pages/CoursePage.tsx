@@ -8,10 +8,18 @@ import { useCourse, useCourseRole } from '../hooks/useCourse';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorAlert from '../components/common/ErrorAlert';
 
-const CoursePage = () => {
-  const { courseId } = useParams();
-  const { data: course, isLoading: courseLoading, error: courseError } = useCourse(courseId);
-  const { data: userRole, isLoading: roleLoading } = useCourseRole(courseId);
+interface Feature {
+  name: string;
+  description: string;
+  icon: React.ReactElement;
+  href: string;
+  color: string;
+}
+
+const CoursePage: React.FC = () => {
+  const { courseId } = useParams<{ courseId: string }>();
+  const { data: course, isLoading: courseLoading, error: courseError } = useCourse(courseId || '');
+  const { data: userRole, isLoading: roleLoading } = useCourseRole(courseId || '');
 
   if (courseLoading || roleLoading) {
     return (
@@ -33,7 +41,7 @@ const CoursePage = () => {
   const isAssistant = userRole === 'assistant';
   const canManage = isInstructor || isAssistant;
 
-  const features = [
+  const features: Feature[] = [
     {
       name: '채팅',
       description: '실시간 커뮤니케이션 및 토론',

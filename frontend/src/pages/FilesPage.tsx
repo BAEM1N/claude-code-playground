@@ -6,32 +6,45 @@ import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { filesAPI } from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
 import { useCourseRole } from '../hooks/useCourse';
 import FileUpload from '../components/common/FileUpload';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorAlert from '../components/common/ErrorAlert';
 import { formatFileSize, formatDate } from '../utils/formatters';
 
-const FilesPage = () => {
-  const { courseId } = useParams();
-  const { user } = useAuth();
+interface Folder {
+  id: string;
+  name: string;
+  parent_id?: string;
+}
+
+interface FileItem {
+  id: string;
+  filename?: string;
+  name?: string;
+  size?: number;
+  created_at?: string;
+  uploader_name?: string;
+}
+
+const FilesPage: React.FC = () => {
+  const { courseId } = useParams<{ courseId: string }>();
   const queryClient = useQueryClient();
 
-  const [selectedFolder, setSelectedFolder] = useState(null);
+  const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
   const [showUpload, setShowUpload] = useState(false);
   const [showNewFolder, setShowNewFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const { data: userRole } = useCourseRole(courseId);
+  const { data: userRole } = useCourseRole(courseId || '');
   const canManage = userRole === 'instructor' || userRole === 'assistant';
 
   // Fetch folders
-  const { data: folders, isLoading: foldersLoading } = useQuery(
+  const { data: folders, isLoading: foldersLoading } = useQuery<Folder[]>(
     ['folders', courseId],
     async () => {
-      const { data } = await filesAPI.getFolders(courseId);
+      const { data } = await (filesAPI as any).getFolders(courseId);
       return data;
     },
     {
@@ -40,10 +53,10 @@ const FilesPage = () => {
   );
 
   // Fetch files
-  const { data: files, isLoading: filesLoading } = useQuery(
+  const { data: files, isLoading: filesLoading } = useQuery<FileItem[]>(
     ['files', courseId, selectedFolder?.id],
     async () => {
-      const { data } = await filesAPI.getFiles(courseId, {
+      const { data } = await (filesAPI as any).getFiles(courseId, {
         folder_id: selectedFolder?.id,
       });
       return data;
@@ -55,7 +68,8 @@ const FilesPage = () => {
 
   // Create folder mutation
   const createFolderMutation = useMutation(
-    (folderData) => filesAPI.createFolder(courseId, folderData),
+    (folderData: { name: string; parent_id?: string }) =>
+      (filesAPI as any).createFolder(courseId, folderData),
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['folders', courseId]);
@@ -71,7 +85,7 @@ const FilesPage = () => {
 
   // Upload file mutation
   const uploadFileMutation = useMutation(
-    ({ file }) => filesAPI.uploadFile(courseId, file, selectedFolder?.id),
+    ({ file }: { file: File }) => (filesAPI as any).uploadFile(courseId, file, selectedFolder?.id),
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['files', courseId, selectedFolder?.id]);
@@ -86,7 +100,7 @@ const FilesPage = () => {
 
   // Delete file mutation
   const deleteFileMutation = useMutation(
-    (fileId) => filesAPI.deleteFile(fileId),
+    (fileId: string) => (filesAPI as any).deleteFile(fileId),
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['files', courseId, selectedFolder?.id]);
@@ -98,7 +112,7 @@ const FilesPage = () => {
     }
   );
 
-  const handleCreateFolder = (e) => {
+  const handleCreateFolder = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newFolderName.trim()) return;
 
@@ -108,15 +122,15 @@ const FilesPage = () => {
     });
   };
 
-  const handleFileUpload = (uploadedFiles) => {
+  const handleFileUpload = (uploadedFiles: File[]) => {
     uploadedFiles.forEach((file) => {
       uploadFileMutation.mutate({ file });
     });
   };
 
-  const handleFileDownload = async (fileId, filename) => {
+  const handleFileDownload = async (fileId: string, filename: string) => {
     try {
-      const { data } = await filesAPI.downloadFile(fileId);
+      const { data } = await (filesAPI as any).downloadFile(fileId);
       const url = window.URL.createObjectURL(new Blob([data]));
       const link = document.createElement('a');
       link.href = url;
@@ -131,7 +145,7 @@ const FilesPage = () => {
     }
   };
 
-  const handleFileDelete = (fileId) => {
+  const handleFileDelete = (fileId: string) => {
     if (window.confirm('이 파일을 삭제하시겠습니까?')) {
       deleteFileMutation.mutate(fileId);
     }
@@ -245,7 +259,7 @@ const FilesPage = () => {
             <div className="bg-white rounded-lg p-6 max-w-2xl w-full">
               <h3 className="text-lg font-medium text-gray-900 mb-4">파일 업로드</h3>
               <FileUpload
-                onFilesSelected={handleFileUpload}
+                onFileSelect={handleFileUpload}
                 multiple
                 accept="*/*"
               />
@@ -396,7 +410,7 @@ const FilesPage = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <button
-                              onClick={() => handleFileDownload(file.id, file.filename || file.name)}
+                              onClick={() => handleFileDownload(file.id, file.filename || file.name || 'file')}
                               className="text-blue-600 hover:text-blue-900 mr-4"
                             >
                               다운로드

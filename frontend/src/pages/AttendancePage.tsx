@@ -6,11 +6,13 @@ import StudentCheckIn from '../components/attendance/StudentCheckIn';
 import AttendanceRecords from '../components/attendance/AttendanceRecords';
 import { useAuth } from '../contexts/AuthContext';
 
-const AttendancePage = () => {
-  const { courseId } = useParams();
+type ViewType = 'list' | 'create' | 'checkin' | 'records';
+
+const AttendancePage: React.FC = () => {
+  const { courseId } = useParams<{ courseId: string }>();
   const { user } = useAuth();
-  const [view, setView] = useState('list'); // 'list', 'create', 'checkin', 'records'
-  const [selectedSession, setSelectedSession] = useState(null);
+  const [view, setView] = useState<ViewType>('list');
+  const [selectedSession, _setSelectedSession] = useState<any>(null);
 
   const userRole = user?.role || 'student';
 
@@ -101,6 +103,7 @@ const AttendancePage = () => {
 
         {view === 'records' && (
           <AttendanceRecords
+            sessionId={undefined}
             courseId={courseId}
             userRole={userRole}
           />

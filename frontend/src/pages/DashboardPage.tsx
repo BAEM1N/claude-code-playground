@@ -9,7 +9,7 @@ import { useCourses } from '../hooks/useCourse';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorAlert from '../components/common/ErrorAlert';
 
-const DashboardPage = () => {
+const DashboardPage: React.FC = () => {
   const { user, profile } = useAuth();
   const { data: courses, isLoading, error } = useCourses();
 
@@ -146,7 +146,7 @@ const DashboardPage = () => {
 
           {courses && courses.length > 0 ? (
             <div className="divide-y divide-gray-200">
-              {courses.map((course) => (
+              {courses.map((course: any) => (
                 <Link
                   key={course.id}
                   to={`/courses/${course.id}`}

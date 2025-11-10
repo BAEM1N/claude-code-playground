@@ -8,13 +8,15 @@ import QuizResults from '../components/quiz/QuizResults';
 import GradingInterface from '../components/quiz/GradingInterface';
 import { useAuth } from '../contexts/AuthContext';
 
-const QuizPage = () => {
-  const { courseId } = useParams();
+type ViewType = 'list' | 'create' | 'edit' | 'questions' | 'take' | 'results' | 'grade';
+
+const QuizPage: React.FC = () => {
+  const { courseId } = useParams<{ courseId: string }>();
   const { user } = useAuth();
-  const [view, setView] = useState('list'); // 'list', 'create', 'edit', 'questions', 'take', 'results', 'grade'
-  const [selectedQuiz, setSelectedQuiz] = useState(null);
-  const [selectedQuestion, setSelectedQuestion] = useState(null);
-  const [attemptId, setAttemptId] = useState(null);
+  const [view, setView] = useState<ViewType>('list');
+  const [selectedQuiz, setSelectedQuiz] = useState<any>(null);
+  const [selectedQuestion, setSelectedQuestion] = useState<any>(null);
+  const [attemptId, setAttemptId] = useState<string | null>(null);
 
   const userRole = user?.role || 'student';
   const isInstructor = userRole === 'instructor' || userRole === 'assistant';
@@ -24,39 +26,12 @@ const QuizPage = () => {
     setView('create');
   };
 
-  const handleEditQuiz = (quiz) => {
-    setSelectedQuiz(quiz);
-    setView('edit');
-  };
-
-  const handleManageQuestions = (quiz) => {
-    setSelectedQuiz(quiz);
-    setView('questions');
-  };
-
-  const handleTakeQuiz = (quiz) => {
-    setSelectedQuiz(quiz);
-    setView('take');
-  };
-
-  const handleViewResults = (quiz, attemptId) => {
-    setSelectedQuiz(quiz);
-    setAttemptId(attemptId);
-    setView('results');
-  };
-
-  const handleGradeAttempt = (quiz, attemptId) => {
-    setSelectedQuiz(quiz);
-    setAttemptId(attemptId);
-    setView('grade');
-  };
-
   const handleQuizSaved = () => {
     setView('list');
     setSelectedQuiz(null);
   };
 
-  const handleQuizSubmitted = (attemptId) => {
+  const handleQuizSubmitted = (attemptId: string) => {
     setAttemptId(attemptId);
     setView('results');
   };
@@ -86,7 +61,7 @@ const QuizPage = () => {
             </button>
             <QuizForm
               courseId={courseId}
-              quiz={selectedQuiz}
+              quizId={selectedQuiz?.id}
               onSuccess={handleQuizSaved}
               onCancel={handleBackToList}
             />
@@ -129,8 +104,7 @@ const QuizPage = () => {
             </button>
             <QuizTaking
               quizId={selectedQuiz?.id}
-              onSubmit={handleQuizSubmitted}
-              onCancel={handleBackToList}
+              onComplete={handleQuizSubmitted}
             />
           </div>
         );
@@ -191,11 +165,6 @@ const QuizPage = () => {
             <QuizList
               courseId={courseId}
               userRole={userRole}
-              onEdit={handleEditQuiz}
-              onManageQuestions={handleManageQuestions}
-              onTake={handleTakeQuiz}
-              onViewResults={handleViewResults}
-              onGrade={handleGradeAttempt}
             />
           </div>
         );

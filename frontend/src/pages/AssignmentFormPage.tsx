@@ -6,9 +6,9 @@ import { useParams } from 'react-router-dom';
 import AssignmentForm from '../components/assignments/AssignmentForm';
 import { useAssignment } from '../hooks/useAssignments';
 
-const AssignmentFormPage = () => {
-  const { courseId, assignmentId } = useParams();
-  const { assignment, loading } = useAssignment(assignmentId);
+const AssignmentFormPage: React.FC = () => {
+  const { courseId, assignmentId } = useParams<{ courseId: string; assignmentId?: string }>();
+  const { data: assignment, isLoading: loading } = useAssignment(assignmentId || '');
 
   if (assignmentId && loading) {
     return (

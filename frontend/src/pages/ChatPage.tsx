@@ -13,21 +13,39 @@ import ErrorAlert from '../components/common/ErrorAlert';
 import { formatDistanceToNow } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
-const ChatPage = () => {
-  const { courseId } = useParams();
+interface Channel {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+interface Message {
+  id: string;
+  content: string;
+  user_name?: string;
+  created_at?: string;
+  channel_id: string;
+  files?: Array<{
+    id: string;
+    filename: string;
+  }>;
+}
+
+const ChatPage: React.FC = () => {
+  const { courseId } = useParams<{ courseId: string }>();
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const [selectedChannel, setSelectedChannel] = useState(null);
+  const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
   const [messageInput, setMessageInput] = useState('');
-  const [error, setError] = useState(null);
-  const messagesEndRef = useRef(null);
+  const [error, setError] = useState<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Fetch channels
-  const { data: channels, isLoading: channelsLoading } = useQuery(
+  const { data: channels, isLoading: channelsLoading } = useQuery<Channel[]>(
     ['channels', courseId],
     async () => {
-      const { data } = await channelsAPI.getChannels(courseId);
+      const { data } = await (channelsAPI as any).getChannels(courseId);
       return data;
     },
     {
@@ -41,10 +59,10 @@ const ChatPage = () => {
   );
 
   // Fetch messages for selected channel
-  const { data: messages, isLoading: messagesLoading } = useQuery(
+  const { data: messages, isLoading: messagesLoading } = useQuery<Message[]>(
     ['messages', selectedChannel?.id],
     async () => {
-      const { data } = await messagesAPI.getMessages(selectedChannel.id);
+      const { data } = await (messagesAPI as any).getMessages(selectedChannel!.id);
       return data;
     },
     {
@@ -55,7 +73,7 @@ const ChatPage = () => {
 
   // Send message mutation
   const sendMessageMutation = useMutation(
-    (content) => messagesAPI.createMessage(selectedChannel.id, { content }),
+    (content: string) => (messagesAPI as any).createMessage(selectedChannel!.id, { content }),
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['messages', selectedChannel?.id]);
@@ -79,7 +97,7 @@ const ChatPage = () => {
     wsService.connect(courseId, token);
 
     // Listen for new messages
-    const handleNewMessage = (message) => {
+    const handleNewMessage = (message: Message) => {
       if (message.channel_id === selectedChannel?.id) {
         queryClient.invalidateQueries(['messages', selectedChannel.id]);
       }
@@ -98,14 +116,14 @@ const ChatPage = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSendMessage = (e) => {
+  const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!messageInput.trim()) return;
 
     sendMessageMutation.mutate(messageInput);
   };
 
-  const handleChannelSelect = (channel) => {
+  const handleChannelSelect = (channel: Channel) => {
     setSelectedChannel(channel);
     setError(null);
   };

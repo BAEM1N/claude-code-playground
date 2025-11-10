@@ -44,7 +44,7 @@ export const useQuizzes = (courseId: string, params: any = {}): UseQueryResult<Q
   return useQuery(
     ['quizzes', courseId, params],
     async () => {
-      const { data } = await quizAPI.getQuizzes(courseId, params);
+      const { data } = await (quizAPI as any).getQuizzes(courseId, params);
       return data;
     },
     {
@@ -62,7 +62,7 @@ export const useQuiz = (quizId: string): UseQueryResult<Quiz, AxiosError> => {
   return useQuery(
     ['quiz', quizId],
     async () => {
-      const { data } = await quizAPI.getOne(quizId);
+      const { data } = await (quizAPI as any).getOne(quizId);
       return data;
     },
     {
@@ -79,7 +79,7 @@ export const useQuizQuestions = (quizId: string): UseQueryResult<QuizQuestion[],
   return useQuery(
     ['quizQuestions', quizId],
     async () => {
-      const { data } = await quizAPI.getQuestions(quizId);
+      const { data } = await (quizAPI as any).getQuestions(quizId);
       return data;
     },
     {
@@ -96,7 +96,7 @@ export const useQuizAttempts = (quizId: string): UseQueryResult<QuizAttempt[], A
   return useQuery(
     ['quizAttempts', quizId],
     async () => {
-      const { data } = await quizAPI.getAttempts(quizId);
+      const { data } = await (quizAPI as any).getAttempts(quizId);
       return data;
     },
     {
@@ -113,7 +113,7 @@ export const useQuizAttempt = (attemptId: string): UseQueryResult<QuizAttempt, A
   return useQuery(
     ['quizAttempt', attemptId],
     async () => {
-      const { data } = await quizAPI.getAttempt(attemptId);
+      const { data } = await (quizAPI as any).getAttempt(attemptId);
       return data;
     },
     {
@@ -130,7 +130,7 @@ export const useQuizStatistics = (quizId: string): UseQueryResult<any, AxiosErro
   return useQuery(
     ['quizStatistics', quizId],
     async () => {
-      const { data } = await quizAPI.getStatistics(quizId);
+      const { data } = await (quizAPI as any).getStatistics(quizId);
       return data;
     },
     {
@@ -147,7 +147,7 @@ export const useCreateQuiz = (): UseMutationResult<Quiz, AxiosError, Partial<Qui
   const queryClient = useQueryClient();
 
   return useMutation(
-    (quizData: Partial<Quiz>) => quizAPI.create(quizData),
+    (quizData: Partial<Quiz>) => (quizAPI as any).create(quizData),
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['quizzes']);
@@ -163,7 +163,7 @@ export const useUpdateQuiz = (): UseMutationResult<Quiz, AxiosError, UpdateQuizP
   const queryClient = useQueryClient();
 
   return useMutation(
-    ({ quizId, quizData }: UpdateQuizParams) => quizAPI.update(quizId, quizData),
+    ({ quizId, quizData }: UpdateQuizParams) => (quizAPI as any).update(quizId, quizData),
     {
       onSuccess: (_data, variables) => {
         queryClient.invalidateQueries(['quiz', variables.quizId]);
@@ -180,7 +180,7 @@ export const useDeleteQuiz = (): UseMutationResult<void, AxiosError, string> => 
   const queryClient = useQueryClient();
 
   return useMutation(
-    (quizId: string) => quizAPI.delete(quizId),
+    (quizId: string) => (quizAPI as any).delete(quizId),
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['quizzes']);
@@ -196,7 +196,7 @@ export const useCreateQuestion = (): UseMutationResult<QuizQuestion, AxiosError,
   const queryClient = useQueryClient();
 
   return useMutation(
-    ({ quizId, questionData }: CreateQuestionParams) => quizAPI.createQuestion(quizId, questionData),
+    ({ quizId, questionData }: CreateQuestionParams) => (quizAPI as any).createQuestion(quizId, questionData),
     {
       onSuccess: (_data, variables) => {
         queryClient.invalidateQueries(['quizQuestions', variables.quizId]);
@@ -213,7 +213,7 @@ export const useUpdateQuestion = (): UseMutationResult<QuizQuestion, AxiosError,
   const queryClient = useQueryClient();
 
   return useMutation(
-    ({ questionId, questionData }: UpdateQuestionParams) => quizAPI.updateQuestion(questionId, questionData),
+    ({ questionId, questionData }: UpdateQuestionParams) => (quizAPI as any).updateQuestion(questionId, questionData),
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['quizQuestions']);
@@ -229,7 +229,7 @@ export const useDeleteQuestion = (): UseMutationResult<void, AxiosError, string>
   const queryClient = useQueryClient();
 
   return useMutation(
-    (questionId: string) => quizAPI.deleteQuestion(questionId),
+    (questionId: string) => (quizAPI as any).deleteQuestion(questionId),
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['quizQuestions']);
@@ -245,7 +245,7 @@ export const useStartQuiz = (): UseMutationResult<QuizAttempt, AxiosError, strin
   const queryClient = useQueryClient();
 
   return useMutation(
-    (quizId: string) => quizAPI.startQuiz(quizId),
+    (quizId: string) => (quizAPI as any).startQuiz(quizId),
     {
       onSuccess: (_data, variables) => {
         queryClient.invalidateQueries(['quizAttempts', variables]);
@@ -261,7 +261,7 @@ export const useSubmitQuiz = (): UseMutationResult<QuizAttempt, AxiosError, Subm
   const queryClient = useQueryClient();
 
   return useMutation(
-    ({ attemptId, answers }: SubmitQuizParams) => quizAPI.submitQuiz(attemptId, { answers }),
+    ({ attemptId, answers }: SubmitQuizParams) => (quizAPI as any).submitQuiz(attemptId, { answers }),
     {
       onSuccess: (_data, variables) => {
         queryClient.invalidateQueries(['quizAttempt', variables.attemptId]);
@@ -277,7 +277,7 @@ export const useSubmitQuiz = (): UseMutationResult<QuizAttempt, AxiosError, Subm
  */
 export const useTrackBehavior = (): UseMutationResult<void, AxiosError, TrackBehaviorParams> => {
   return useMutation(
-    ({ attemptId, behaviorData }: TrackBehaviorParams) => quizAPI.trackBehavior(attemptId, behaviorData),
+    ({ attemptId, behaviorData }: TrackBehaviorParams) => (quizAPI as any).trackBehavior(attemptId, behaviorData),
     {
       // Don't invalidate queries - this is just tracking
     }
@@ -291,7 +291,7 @@ export const useGradeAnswer = (): UseMutationResult<QuizAnswer, AxiosError, Grad
   const queryClient = useQueryClient();
 
   return useMutation(
-    ({ answerId, gradeData }: GradeAnswerParams) => quizAPI.gradeAnswer(answerId, gradeData),
+    ({ answerId, gradeData }: GradeAnswerParams) => (quizAPI as any).gradeAnswer(answerId, gradeData),
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['quizAttempts']);

@@ -9,7 +9,8 @@
  * - Progress (진도 관리)
  */
 
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useQuery, useMutation, useQueryClient, UseQueryResult, UseMutationResult } from 'react-query';
+import { AxiosError } from 'axios';
 import api from '../services/api';
 
 // ============================================================================
@@ -17,37 +18,33 @@ import api from '../services/api';
 // ============================================================================
 
 export const learningKeys = {
-  all: ['learning'],
-  tracks: () => [...learningKeys.all, 'tracks'],
-  track: (id) => [...learningKeys.tracks(), id],
-  trackFull: (id) => [...learningKeys.track(id), 'full'],
-
-  modules: () => [...learningKeys.all, 'modules'],
-  module: (id) => [...learningKeys.modules(), id],
-  moduleFull: (id) => [...learningKeys.module(id), 'full'],
-  trackModules: (trackId) => [...learningKeys.track(trackId), 'modules'],
-
-  chapters: () => [...learningKeys.all, 'chapters'],
-  chapter: (id) => [...learningKeys.chapters(), id],
-  moduleChapters: (moduleId) => [...learningKeys.module(moduleId), 'chapters'],
-
-  topics: () => [...learningKeys.all, 'topics'],
-  topic: (id) => [...learningKeys.topics(), id],
-  chapterTopics: (chapterId) => [...learningKeys.chapter(chapterId), 'topics'],
-
-  progress: (topicId) => [...learningKeys.topic(topicId), 'progress'],
+  all: ['learning'] as const,
+  tracks: () => [...learningKeys.all, 'tracks'] as const,
+  track: (id: string) => [...learningKeys.tracks(), id] as const,
+  trackFull: (id: string) => [...learningKeys.track(id), 'full'] as const,
+  modules: () => [...learningKeys.all, 'modules'] as const,
+  module: (id: string) => [...learningKeys.modules(), id] as const,
+  moduleFull: (id: string) => [...learningKeys.module(id), 'full'] as const,
+  trackModules: (trackId: string) => [...learningKeys.track(trackId), 'modules'] as const,
+  chapters: () => [...learningKeys.all, 'chapters'] as const,
+  chapter: (id: string) => [...learningKeys.chapters(), id] as const,
+  moduleChapters: (moduleId: string) => [...learningKeys.module(moduleId), 'chapters'] as const,
+  topics: () => [...learningKeys.all, 'topics'] as const,
+  topic: (id: string) => [...learningKeys.topics(), id] as const,
+  chapterTopics: (chapterId: string) => [...learningKeys.chapter(chapterId), 'topics'] as const,
+  progress: (topicId: string) => [...learningKeys.topic(topicId), 'progress'] as const,
 };
 
 // ============================================================================
 // Track Hooks
 // ============================================================================
 
-/**
- * Get all learning tracks
- * @param {Object} options - Query options
- * @param {boolean} options.publishedOnly - Only show published tracks
- */
-export const useTracks = ({ publishedOnly = true } = {}) => {
+interface TrackOptions {
+  publishedOnly?: boolean;
+}
+
+export const useTracks = (options: TrackOptions = {}): UseQueryResult<any[], AxiosError> => {
+  const { publishedOnly = true } = options;
   return useQuery(
     learningKeys.tracks(),
     async () => {
@@ -57,16 +54,12 @@ export const useTracks = ({ publishedOnly = true } = {}) => {
       return response.data;
     },
     {
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: 5 * 60 * 1000,
     }
   );
 };
 
-/**
- * Get single track with modules
- * @param {string} trackId - Track ID
- */
-export const useTrack = (trackId) => {
+export const useTrack = (trackId: string): UseQueryResult<any, AxiosError> => {
   return useQuery(
     learningKeys.track(trackId),
     async () => {
@@ -80,11 +73,7 @@ export const useTrack = (trackId) => {
   );
 };
 
-/**
- * Get track with full nested content
- * @param {string} trackId - Track ID
- */
-export const useTrackFull = (trackId) => {
+export const useTrackFull = (trackId: string): UseQueryResult<any, AxiosError> => {
   return useQuery(
     learningKeys.trackFull(trackId),
     async () => {
@@ -98,14 +87,11 @@ export const useTrackFull = (trackId) => {
   );
 };
 
-/**
- * Create a new track
- */
-export const useCreateTrack = () => {
+export const useCreateTrack = (): UseMutationResult<any, AxiosError, any> => {
   const queryClient = useQueryClient();
 
   return useMutation(
-    async (trackData) => {
+    async (trackData: any) => {
       const response = await api.post('/learning/tracks', trackData);
       return response.data;
     },
@@ -117,14 +103,16 @@ export const useCreateTrack = () => {
   );
 };
 
-/**
- * Update a track
- */
-export const useUpdateTrack = () => {
+interface UpdateTrackParams {
+  trackId: string;
+  data: any;
+}
+
+export const useUpdateTrack = (): UseMutationResult<any, AxiosError, UpdateTrackParams> => {
   const queryClient = useQueryClient();
 
   return useMutation(
-    async ({ trackId, data }) => {
+    async ({ trackId, data }: UpdateTrackParams) => {
       const response = await api.put(`/learning/tracks/${trackId}`, data);
       return response.data;
     },
@@ -137,14 +125,11 @@ export const useUpdateTrack = () => {
   );
 };
 
-/**
- * Delete a track
- */
-export const useDeleteTrack = () => {
+export const useDeleteTrack = (): UseMutationResult<void, AxiosError, string> => {
   const queryClient = useQueryClient();
 
   return useMutation(
-    async (trackId) => {
+    async (trackId: string) => {
       await api.delete(`/learning/tracks/${trackId}`);
     },
     {
@@ -159,11 +144,7 @@ export const useDeleteTrack = () => {
 // Module Hooks
 // ============================================================================
 
-/**
- * Get modules in a track
- * @param {string} trackId - Track ID
- */
-export const useTrackModules = (trackId) => {
+export const useTrackModules = (trackId: string): UseQueryResult<any[], AxiosError> => {
   return useQuery(
     learningKeys.trackModules(trackId),
     async () => {
@@ -177,11 +158,7 @@ export const useTrackModules = (trackId) => {
   );
 };
 
-/**
- * Get single module with chapters
- * @param {string} moduleId - Module ID
- */
-export const useModule = (moduleId) => {
+export const useModule = (moduleId: string): UseQueryResult<any, AxiosError> => {
   return useQuery(
     learningKeys.module(moduleId),
     async () => {
@@ -195,11 +172,7 @@ export const useModule = (moduleId) => {
   );
 };
 
-/**
- * Get module with full nested content (chapters, topics, progress)
- * @param {string} moduleId - Module ID
- */
-export const useModuleFull = (moduleId) => {
+export const useModuleFull = (moduleId: string): UseQueryResult<any, AxiosError> => {
   return useQuery(
     learningKeys.moduleFull(moduleId),
     async () => {
@@ -213,14 +186,11 @@ export const useModuleFull = (moduleId) => {
   );
 };
 
-/**
- * Create a new module
- */
-export const useCreateModule = () => {
+export const useCreateModule = (): UseMutationResult<any, AxiosError, any> => {
   const queryClient = useQueryClient();
 
   return useMutation(
-    async (moduleData) => {
+    async (moduleData: any) => {
       const response = await api.post('/learning/modules', moduleData);
       return response.data;
     },
@@ -233,14 +203,16 @@ export const useCreateModule = () => {
   );
 };
 
-/**
- * Update a module
- */
-export const useUpdateModule = () => {
+interface UpdateModuleParams {
+  moduleId: string;
+  data: any;
+}
+
+export const useUpdateModule = (): UseMutationResult<any, AxiosError, UpdateModuleParams> => {
   const queryClient = useQueryClient();
 
   return useMutation(
-    async ({ moduleId, data }) => {
+    async ({ moduleId, data }: UpdateModuleParams) => {
       const response = await api.put(`/learning/modules/${moduleId}`, data);
       return response.data;
     },
@@ -254,14 +226,11 @@ export const useUpdateModule = () => {
   );
 };
 
-/**
- * Delete a module
- */
-export const useDeleteModule = () => {
+export const useDeleteModule = (): UseMutationResult<void, AxiosError, string> => {
   const queryClient = useQueryClient();
 
   return useMutation(
-    async (moduleId) => {
+    async (moduleId: string) => {
       await api.delete(`/learning/modules/${moduleId}`);
     },
     {
@@ -276,11 +245,7 @@ export const useDeleteModule = () => {
 // Chapter Hooks
 // ============================================================================
 
-/**
- * Get chapters in a module
- * @param {string} moduleId - Module ID
- */
-export const useModuleChapters = (moduleId) => {
+export const useModuleChapters = (moduleId: string): UseQueryResult<any[], AxiosError> => {
   return useQuery(
     learningKeys.moduleChapters(moduleId),
     async () => {
@@ -294,11 +259,7 @@ export const useModuleChapters = (moduleId) => {
   );
 };
 
-/**
- * Get single chapter with topics
- * @param {string} chapterId - Chapter ID
- */
-export const useChapter = (chapterId) => {
+export const useChapter = (chapterId: string): UseQueryResult<any, AxiosError> => {
   return useQuery(
     learningKeys.chapter(chapterId),
     async () => {
@@ -312,14 +273,11 @@ export const useChapter = (chapterId) => {
   );
 };
 
-/**
- * Create a new chapter
- */
-export const useCreateChapter = () => {
+export const useCreateChapter = (): UseMutationResult<any, AxiosError, any> => {
   const queryClient = useQueryClient();
 
   return useMutation(
-    async (chapterData) => {
+    async (chapterData: any) => {
       const response = await api.post('/learning/chapters', chapterData);
       return response.data;
     },
@@ -332,14 +290,16 @@ export const useCreateChapter = () => {
   );
 };
 
-/**
- * Update a chapter
- */
-export const useUpdateChapter = () => {
+interface UpdateChapterParams {
+  chapterId: string;
+  data: any;
+}
+
+export const useUpdateChapter = (): UseMutationResult<any, AxiosError, UpdateChapterParams> => {
   const queryClient = useQueryClient();
 
   return useMutation(
-    async ({ chapterId, data }) => {
+    async ({ chapterId, data }: UpdateChapterParams) => {
       const response = await api.put(`/learning/chapters/${chapterId}`, data);
       return response.data;
     },
@@ -353,14 +313,11 @@ export const useUpdateChapter = () => {
   );
 };
 
-/**
- * Delete a chapter
- */
-export const useDeleteChapter = () => {
+export const useDeleteChapter = (): UseMutationResult<void, AxiosError, string> => {
   const queryClient = useQueryClient();
 
   return useMutation(
-    async (chapterId) => {
+    async (chapterId: string) => {
       await api.delete(`/learning/chapters/${chapterId}`);
     },
     {
@@ -375,11 +332,7 @@ export const useDeleteChapter = () => {
 // Topic Hooks
 // ============================================================================
 
-/**
- * Get topics in a chapter
- * @param {string} chapterId - Chapter ID
- */
-export const useChapterTopics = (chapterId) => {
+export const useChapterTopics = (chapterId: string): UseQueryResult<any[], AxiosError> => {
   return useQuery(
     learningKeys.chapterTopics(chapterId),
     async () => {
@@ -393,11 +346,7 @@ export const useChapterTopics = (chapterId) => {
   );
 };
 
-/**
- * Get single topic with user progress
- * @param {string} topicId - Topic ID
- */
-export const useTopic = (topicId) => {
+export const useTopic = (topicId: string): UseQueryResult<any, AxiosError> => {
   return useQuery(
     learningKeys.topic(topicId),
     async () => {
@@ -406,19 +355,16 @@ export const useTopic = (topicId) => {
     },
     {
       enabled: !!topicId,
-      staleTime: 2 * 60 * 1000, // 2 minutes (fresher for active learning)
+      staleTime: 2 * 60 * 1000,
     }
   );
 };
 
-/**
- * Create a new topic
- */
-export const useCreateTopic = () => {
+export const useCreateTopic = (): UseMutationResult<any, AxiosError, any> => {
   const queryClient = useQueryClient();
 
   return useMutation(
-    async (topicData) => {
+    async (topicData: any) => {
       const response = await api.post('/learning/topics', topicData);
       return response.data;
     },
@@ -431,14 +377,16 @@ export const useCreateTopic = () => {
   );
 };
 
-/**
- * Update a topic
- */
-export const useUpdateTopic = () => {
+interface UpdateTopicParams {
+  topicId: string;
+  data: any;
+}
+
+export const useUpdateTopic = (): UseMutationResult<any, AxiosError, UpdateTopicParams> => {
   const queryClient = useQueryClient();
 
   return useMutation(
-    async ({ topicId, data }) => {
+    async ({ topicId, data }: UpdateTopicParams) => {
       const response = await api.put(`/learning/topics/${topicId}`, data);
       return response.data;
     },
@@ -452,14 +400,11 @@ export const useUpdateTopic = () => {
   );
 };
 
-/**
- * Delete a topic
- */
-export const useDeleteTopic = () => {
+export const useDeleteTopic = (): UseMutationResult<void, AxiosError, string> => {
   const queryClient = useQueryClient();
 
   return useMutation(
-    async (topicId) => {
+    async (topicId: string) => {
       await api.delete(`/learning/topics/${topicId}`);
     },
     {
@@ -474,11 +419,7 @@ export const useDeleteTopic = () => {
 // Progress Hooks
 // ============================================================================
 
-/**
- * Get user progress for a topic
- * @param {string} topicId - Topic ID
- */
-export const useTopicProgress = (topicId) => {
+export const useTopicProgress = (topicId: string): UseQueryResult<any, AxiosError> => {
   return useQuery(
     learningKeys.progress(topicId),
     async () => {
@@ -487,24 +428,26 @@ export const useTopicProgress = (topicId) => {
     },
     {
       enabled: !!topicId,
-      staleTime: 1 * 60 * 1000, // 1 minute (very fresh for active learning)
+      staleTime: 1 * 60 * 1000,
     }
   );
 };
 
-/**
- * Update user progress for a topic
- */
-export const useUpdateTopicProgress = () => {
+interface UpdateProgressParams {
+  topicId: string;
+  progress: any;
+}
+
+export const useUpdateTopicProgress = (): UseMutationResult<any, AxiosError, UpdateProgressParams> => {
   const queryClient = useQueryClient();
 
   return useMutation(
-    async ({ topicId, progress }) => {
+    async ({ topicId, progress }: UpdateProgressParams) => {
       const response = await api.put(`/learning/topics/${topicId}/progress`, progress);
       return response.data;
     },
     {
-      onSuccess: (data, variables) => {
+      onSuccess: (_data, variables) => {
         queryClient.invalidateQueries(learningKeys.progress(variables.topicId));
         queryClient.invalidateQueries(learningKeys.topic(variables.topicId));
       },
@@ -512,14 +455,11 @@ export const useUpdateTopicProgress = () => {
   );
 };
 
-/**
- * Mark topic as started
- */
-export const useStartTopic = () => {
+export const useStartTopic = (): UseMutationResult<any, AxiosError, string> => {
   const mutation = useUpdateTopicProgress();
 
   return useMutation(
-    async (topicId) => {
+    async (topicId: string) => {
       return mutation.mutateAsync({
         topicId,
         progress: {
@@ -530,14 +470,11 @@ export const useStartTopic = () => {
   );
 };
 
-/**
- * Mark topic as completed
- */
-export const useCompleteTopic = () => {
+export const useCompleteTopic = (): UseMutationResult<any, AxiosError, string> => {
   const mutation = useUpdateTopicProgress();
 
   return useMutation(
-    async (topicId) => {
+    async (topicId: string) => {
       return mutation.mutateAsync({
         topicId,
         progress: {
@@ -548,14 +485,16 @@ export const useCompleteTopic = () => {
   );
 };
 
-/**
- * Update video playback position
- */
-export const useUpdateVideoPosition = () => {
+interface UpdateVideoPositionParams {
+  topicId: string;
+  positionSeconds: number;
+}
+
+export const useUpdateVideoPosition = (): UseMutationResult<any, AxiosError, UpdateVideoPositionParams> => {
   const mutation = useUpdateTopicProgress();
 
   return useMutation(
-    async ({ topicId, positionSeconds }) => {
+    async ({ topicId, positionSeconds }: UpdateVideoPositionParams) => {
       return mutation.mutateAsync({
         topicId,
         progress: {
@@ -567,14 +506,17 @@ export const useUpdateVideoPosition = () => {
   );
 };
 
-/**
- * Save notebook execution state
- */
-export const useSaveNotebookState = () => {
+interface SaveNotebookParams {
+  topicId: string;
+  notebookState: any;
+  lastCellIndex: number;
+}
+
+export const useSaveNotebookState = (): UseMutationResult<any, AxiosError, SaveNotebookParams> => {
   const mutation = useUpdateTopicProgress();
 
   return useMutation(
-    async ({ topicId, notebookState, lastCellIndex }) => {
+    async ({ topicId, notebookState, lastCellIndex }: SaveNotebookParams) => {
       return mutation.mutateAsync({
         topicId,
         progress: {
@@ -591,13 +533,16 @@ export const useSaveNotebookState = () => {
 // Notebook Execution Hook (Placeholder for Phase 4)
 // ============================================================================
 
-/**
- * Execute a notebook cell
- * TODO: Will be implemented in Phase 4 with Jupyter Kernel Gateway
- */
-export const useExecuteNotebookCell = () => {
+interface ExecuteNotebookParams {
+  topicId: string;
+  cellIndex: number;
+  code: string;
+  kernelType?: string;
+}
+
+export const useExecuteNotebookCell = (): UseMutationResult<any, AxiosError, ExecuteNotebookParams> => {
   return useMutation(
-    async ({ topicId, cellIndex, code, kernelType = 'python3' }) => {
+    async ({ topicId, cellIndex, code, kernelType = 'python3' }: ExecuteNotebookParams) => {
       const response = await api.post(`/learning/topics/${topicId}/execute`, {
         topic_id: topicId,
         cell_index: cellIndex,

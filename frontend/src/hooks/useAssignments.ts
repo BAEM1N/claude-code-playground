@@ -6,12 +6,6 @@ import { useQuery, useMutation, useQueryClient, UseQueryResult, UseMutationResul
 import { AxiosError } from 'axios';
 import { assignmentsAPI } from '../services/api';
 import { Assignment, AssignmentSubmission, Grade } from '../types';
-
-// Query options for assignments
-interface AssignmentQueryParams {
-  include_unpublished?: boolean;
-}
-
 interface CreateAssignmentParams {
   courseId: string;
   assignmentData: Partial<Assignment>;

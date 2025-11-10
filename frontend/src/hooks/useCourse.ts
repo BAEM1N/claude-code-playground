@@ -29,7 +29,7 @@ export const useCourseRole = (courseId: string): UseQueryResult<string | null, A
       }
 
       try {
-        const { data } = await coursesAPI.getMembers(courseId);
+        const { data } = await (coursesAPI as any).getMembers(courseId);
         const member = data.find((m: any) => m.user_id === user.id);
         return member?.role || 'student';
       } catch (error) {
@@ -56,7 +56,7 @@ export const useCourse = (courseId: string): UseQueryResult<Course, AxiosError> 
   return useQuery(
     ['course', courseId],
     async () => {
-      const { data } = await coursesAPI.getOne(courseId);
+      const { data } = await (coursesAPI as any).getOne(courseId);
       return data;
     },
     {
@@ -75,7 +75,7 @@ export const useCourses = (): UseQueryResult<Course[], AxiosError> => {
   return useQuery(
     ['courses'],
     async () => {
-      const { data } = await coursesAPI.getMyCourses();
+      const { data } = await (coursesAPI as any).getMyCourses();
       return data;
     },
     {
@@ -94,7 +94,7 @@ export const useCourseMembers = (courseId: string): UseQueryResult<User[], Axios
   return useQuery(
     ['courseMembers', courseId],
     async () => {
-      const { data } = await coursesAPI.getMembers(courseId);
+      const { data } = await (coursesAPI as any).getMembers(courseId);
       return data;
     },
     {
@@ -113,7 +113,7 @@ export const useCreateCourse = (): UseMutationResult<Course, AxiosError, Partial
   const queryClient = useQueryClient();
 
   return useMutation(
-    (courseData: Partial<Course>) => coursesAPI.create(courseData),
+    (courseData: Partial<Course>) => (coursesAPI as any).create(courseData),
     {
       onSuccess: () => {
         // Invalidate and refetch courses list
@@ -132,7 +132,7 @@ export const useUpdateCourse = (): UseMutationResult<Course, AxiosError, UpdateC
   const queryClient = useQueryClient();
 
   return useMutation(
-    ({ courseId, courseData }: UpdateCourseParams) => coursesAPI.update(courseId, courseData),
+    ({ courseId, courseData }: UpdateCourseParams) => (coursesAPI as any).update(courseId, courseData),
     {
       onSuccess: (_data, variables) => {
         // Invalidate specific course and courses list
@@ -152,7 +152,7 @@ export const useDeleteCourse = (): UseMutationResult<void, AxiosError, string> =
   const queryClient = useQueryClient();
 
   return useMutation(
-    (courseId: string) => coursesAPI.delete(courseId),
+    (courseId: string) => (coursesAPI as any).delete(courseId),
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['courses']);

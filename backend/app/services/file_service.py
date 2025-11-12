@@ -6,12 +6,16 @@ and management operations across the application.
 """
 from typing import Optional
 from uuid import UUID
+import logging
 
 from fastapi import UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.file import File as FileModel
 from app.services.storage_service import storage_service
+from app.utils.file_validator import validate_upload_file
+
+logger = logging.getLogger(__name__)
 
 
 class FileService:
@@ -44,6 +48,7 @@ class FileService:
             Created file model instance
 
         Raises:
+            HTTPException: If file validation fails
             Exception: If file upload or database operation fails
 
         Example:
@@ -55,10 +60,15 @@ class FileService:
             ...     folder="assignments"
             ... )
         """
+        # Validate file before upload
+        sanitized_filename, file_ext = await validate_upload_file(file)
+
+        logger.info(f"Uploading file: {sanitized_filename} (ext: {file_ext}, size: {file.size}, type: {file.content_type})")
+
         # Upload to MinIO storage
         file_path = storage_service.upload_file(
             file.file,
-            file.filename,
+            sanitized_filename,
             str(course_id),
             folder=folder,
             content_type=file.content_type
@@ -69,7 +79,7 @@ class FileService:
             course_id=course_id,
             folder_id=folder_id,
             uploaded_by=uploaded_by,
-            original_name=file.filename,
+            original_name=sanitized_filename,
             stored_name=file_path.split("/")[-1],
             file_path=file_path,
             file_size=file.size,
@@ -79,6 +89,7 @@ class FileService:
         db.add(db_file)
         await db.flush()
 
+        logger.info(f"File uploaded successfully: {file_path}")
         return db_file
 
     @staticmethod

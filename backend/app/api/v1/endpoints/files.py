@@ -201,23 +201,30 @@ async def get_file_versions(
 @router.post("/{file_id}/tags", status_code=status.HTTP_201_CREATED)
 async def add_file_tag(
     file_id: UUID,
-    tag: str = Query(...),
+    tag: str = Query(..., min_length=1, max_length=50, regex="^[a-zA-Z0-9_-]+$"),
     current_user: dict = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Add tag to file."""
+    """
+    Add tag to file.
+
+    Tags must be 1-50 characters and contain only alphanumeric characters, hyphens, and underscores.
+    """
     # Verify file exists
     await get_or_404(db, File, file_id, "File not found")
 
+    # Normalize tag (lowercase for consistency)
+    normalized_tag = tag.lower().strip()
+
     file_tag = FileTag(
         file_id=file_id,
-        tag=tag
+        tag=normalized_tag
     )
     db.add(file_tag)
 
     try:
         await db.commit()
-        return {"message": "Tag added successfully"}
+        return {"message": "Tag added successfully", "tag": normalized_tag}
     except Exception:
         await db.rollback()
         raise HTTPException(

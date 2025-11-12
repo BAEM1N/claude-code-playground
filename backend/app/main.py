@@ -1,10 +1,13 @@
 """
 Main FastAPI application.
 """
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 from contextlib import asynccontextmanager
 import json
+import logging
 from uuid import UUID
 
 from .core.config import settings
@@ -17,6 +20,13 @@ from .websocket.connection_manager import manager
 from .websocket.handlers import EVENT_HANDLERS
 from sqlalchemy.ext.asyncio import AsyncSession
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -24,29 +34,29 @@ async def lifespan(app: FastAPI):
     Application lifespan events.
     """
     # Startup
-    print("🚀 Starting application...")
+    logger.info("Starting application...")
 
     # Initialize database
     await init_db()
-    print("✅ Database initialized")
+    logger.info("Database initialized")
 
     # Connect to Redis
     await cache_service.connect()
-    print("✅ Redis connected")
+    logger.info("Redis connected")
 
     # Ensure MinIO bucket exists
     storage_service.ensure_bucket()
-    print("✅ MinIO bucket ensured")
+    logger.info("MinIO bucket ensured")
 
     yield
 
     # Shutdown
-    print("🛑 Shutting down application...")
+    logger.info("Shutting down application...")
 
     await cache_service.disconnect()
     await close_db()
 
-    print("✅ Application shut down")
+    logger.info("Application shut down")
 
 
 app = FastAPI(
@@ -74,9 +84,9 @@ app = FastAPI(
     대부분의 API는 인증이 필요합니다. `Authorization: Bearer <token>` 헤더를 사용하세요.
     """,
     lifespan=lifespan,
-    docs_url="/api/docs" if settings.DEBUG or settings.ENVIRONMENT == "development" else None,
-    redoc_url="/api/redoc" if settings.DEBUG or settings.ENVIRONMENT == "development" else None,
-    openapi_url="/api/openapi.json",
+    docs_url="/api/docs" if settings.ENVIRONMENT == "development" else None,
+    redoc_url="/api/redoc" if settings.ENVIRONMENT == "development" else None,
+    openapi_url="/api/openapi.json" if settings.ENVIRONMENT == "development" else None,
     openapi_tags=[
         {"name": "auth", "description": "인증 및 사용자 관리"},
         {"name": "courses", "description": "강의 관리 (생성, 수정, 삭제, 학생 관리)"},
@@ -99,13 +109,44 @@ app = FastAPI(
     },
 )
 
-# CORS middleware
+# Security headers middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    """Add security headers to all responses."""
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    return response
+
+
+# Request size limit middleware
+MAX_REQUEST_SIZE = 10_000_000  # 10MB
+
+@app.middleware("http")
+async def limit_request_size(request: Request, call_next):
+    """Limit request body size to prevent DoS attacks."""
+    if request.headers.get('content-length'):
+        content_length = int(request.headers['content-length'])
+        if content_length > MAX_REQUEST_SIZE:
+            logger.warning(f"Request size {content_length} exceeds limit {MAX_REQUEST_SIZE}")
+            return JSONResponse(
+                status_code=413,
+                content={"detail": "Request body too large"}
+            )
+    return await call_next(request)
+
+
+# CORS middleware (must be added after other middleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
+    allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
 )
 
 # Include API router
@@ -184,10 +225,11 @@ async def websocket_endpoint(
         await websocket.send_json({"type": "auth_success", "user_id": user_id})
 
     except asyncio.TimeoutError:
+        logger.warning(f"WebSocket authentication timeout for course {course_id}")
         await websocket.close(code=1008, reason="Authentication timeout")
         return
     except Exception as e:
-        print(f"Authentication error: {e}")
+        logger.error(f"WebSocket authentication error: {str(e)}", exc_info=True)
         await websocket.close(code=1008, reason="Authentication failed")
         return
 
@@ -218,12 +260,14 @@ async def websocket_endpoint(
                         else:
                             await handler(event_data, websocket, course_id, user_id)
                     except Exception as e:
-                        print(f"Error handling event {event_type}: {e}")
+                        logger.error(f"Error handling event {event_type}: {str(e)}", exc_info=True)
+                        # Send generic error message to client (don't expose internal details)
                         await manager.send_personal_message(
-                            {"type": "error", "message": str(e)},
+                            {"type": "error", "message": "An error occurred processing your request"},
                             websocket
                         )
                 else:
+                    logger.warning(f"Unknown event type: {event_type}")
                     await manager.send_personal_message(
                         {"type": "error", "message": f"Unknown event type: {event_type}"},
                         websocket
@@ -231,10 +275,10 @@ async def websocket_endpoint(
 
     except WebSocketDisconnect:
         manager.disconnect(websocket, course_id)
-        print(f"Client {user_id} disconnected from course {course_id}")
+        logger.info(f"Client {user_id} disconnected from course {course_id}")
 
     except Exception as e:
-        print(f"WebSocket error: {e}")
+        logger.error(f"WebSocket error: {str(e)}", exc_info=True)
         manager.disconnect(websocket, course_id)
 
 

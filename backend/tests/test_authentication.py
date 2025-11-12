@@ -21,7 +21,7 @@ class TestCookieAuthentication:
         # Check response contains CSRF token
         assert "csrf_token" in data
         assert "user" in data
-        assert data["user"]["id"] == "test-user-id-123"
+        assert data["user"]["id"] == "00000000-0000-0000-0000-000000000001"
 
         # Check cookies are set
         assert "access_token" in response.cookies

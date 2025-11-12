@@ -2,11 +2,11 @@
 File models.
 """
 from sqlalchemy import Column, String, Text, DateTime, Boolean, ForeignKey, BigInteger, Integer, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 import uuid
 from ..core.database import Base
+from ..core.column_types import UUID
 
 
 class Folder(Base):
@@ -14,11 +14,11 @@ class Folder(Base):
 
     __tablename__ = "folders"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    course_id = Column(UUID(as_uuid=True), ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
-    parent_folder_id = Column(UUID(as_uuid=True), ForeignKey("folders.id"))
+    id = Column(UUID, primary_key=True, default=uuid.uuid4)
+    course_id = Column(UUID, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
+    parent_folder_id = Column(UUID, ForeignKey("folders.id"))
     name = Column(String(255), nullable=False)
-    created_by = Column(UUID(as_uuid=True), ForeignKey("user_profiles.id"))
+    created_by = Column(UUID, ForeignKey("user_profiles.id"))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     is_deleted = Column(Boolean, default=False)
 
@@ -36,17 +36,17 @@ class File(Base):
 
     __tablename__ = "files"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    course_id = Column(UUID(as_uuid=True), ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
-    folder_id = Column(UUID(as_uuid=True), ForeignKey("folders.id"))
-    uploaded_by = Column(UUID(as_uuid=True), ForeignKey("user_profiles.id"))
+    id = Column(UUID, primary_key=True, default=uuid.uuid4)
+    course_id = Column(UUID, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
+    folder_id = Column(UUID, ForeignKey("folders.id"))
+    uploaded_by = Column(UUID, ForeignKey("user_profiles.id"))
     original_name = Column(String(255), nullable=False)
     stored_name = Column(String(255), nullable=False)
     file_path = Column(Text, nullable=False)
     file_size = Column(BigInteger, nullable=False)
     mime_type = Column(String(100))
     version = Column(Integer, default=1)
-    parent_file_id = Column(UUID(as_uuid=True), ForeignKey("files.id"))
+    parent_file_id = Column(UUID, ForeignKey("files.id"))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     is_deleted = Column(Boolean, default=False)
@@ -69,8 +69,8 @@ class FileTag(Base):
 
     __tablename__ = "file_tags"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    file_id = Column(UUID(as_uuid=True), ForeignKey("files.id", ondelete="CASCADE"), nullable=False)
+    id = Column(UUID, primary_key=True, default=uuid.uuid4)
+    file_id = Column(UUID, ForeignKey("files.id", ondelete="CASCADE"), nullable=False)
     tag = Column(String(50), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -91,9 +91,9 @@ class MessageFile(Base):
 
     __tablename__ = "message_files"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    message_id = Column(UUID(as_uuid=True), ForeignKey("messages.id", ondelete="CASCADE"), nullable=False)
-    file_id = Column(UUID(as_uuid=True), ForeignKey("files.id", ondelete="CASCADE"), nullable=False)
+    id = Column(UUID, primary_key=True, default=uuid.uuid4)
+    message_id = Column(UUID, ForeignKey("messages.id", ondelete="CASCADE"), nullable=False)
+    file_id = Column(UUID, ForeignKey("files.id", ondelete="CASCADE"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships

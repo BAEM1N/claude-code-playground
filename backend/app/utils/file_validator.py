@@ -193,9 +193,14 @@ async def validate_upload_file(file: UploadFile) -> Tuple[str, str]:
         )
 
     # Validate file size
-    if file.size:
+    if file.size is not None:
         if not validate_file_size(file.size):
             max_size_mb = MAX_FILE_SIZE / (1024 * 1024)
+            if file.size == 0:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="File is empty (0 bytes)"
+                )
             raise HTTPException(
                 status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
                 detail=f"File size exceeds maximum allowed size of {max_size_mb}MB"

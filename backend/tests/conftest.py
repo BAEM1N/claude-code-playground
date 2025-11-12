@@ -25,7 +25,8 @@ import app.services.cache_service as cache_module
 # Mock storage service
 mock_storage = Mock()
 mock_storage.ensure_bucket = Mock()
-mock_storage.upload_file = Mock()
+# upload_file should return storage path string
+mock_storage.upload_file = Mock(return_value="courses/00000000-0000-0000-0000-000000000001/test.txt")
 mock_storage.get_file = Mock()
 mock_storage.delete_file = Mock()
 mock_storage.get_presigned_url = Mock(return_value="http://test.url")

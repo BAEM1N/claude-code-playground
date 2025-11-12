@@ -140,44 +140,46 @@ async def limit_request_size(request: Request, call_next):
     return await call_next(request)
 
 
-# CSRF protection middleware
-@app.middleware("http")
-async def csrf_protect(request: Request, call_next):
+# CSRF protection middleware class
+class CSRFMiddleware(BaseHTTPMiddleware):
     """
-    CSRF protection for state-changing operations.
-    Skips GET, HEAD, OPTIONS and public endpoints.
+    CSRF protection middleware for state-changing operations.
     """
-    # Skip CSRF check for safe methods
-    if request.method in ["GET", "HEAD", "OPTIONS"]:
+    async def dispatch(self, request: Request, call_next):
+        # Skip CSRF check for safe methods
+        if request.method in ["GET", "HEAD", "OPTIONS"]:
+            return await call_next(request)
+
+        # Skip CSRF check for public auth endpoints
+        public_paths = [
+            "/api/v1/auth/login",
+            "/api/v1/auth/csrf-token",
+            "/health",
+        ]
+
+        # Check if path is public (exact match for root, startswith for others)
+        is_public = request.url.path == "/" or any(request.url.path.startswith(path) for path in public_paths)
+        if is_public:
+            return await call_next(request)
+
+        # For authenticated endpoints, verify CSRF token
+        csrf_cookie = request.cookies.get("csrf_token")
+        csrf_header = request.headers.get("X-CSRF-Token")
+
+        if not csrf_cookie or not csrf_header or csrf_cookie != csrf_header:
+            logger.warning(f"CSRF validation failed for {request.url.path}")
+            return JSONResponse(
+                status_code=403,
+                content={"detail": "CSRF token validation failed"}
+            )
+
         return await call_next(request)
 
-    # Skip CSRF check for public auth endpoints
-    public_paths = [
-        "/api/v1/auth/login",
-        "/api/v1/auth/csrf-token",
-        "/health",
-        "/",
-    ]
 
-    # Check if path is public
-    if any(request.url.path.startswith(path) for path in public_paths):
-        return await call_next(request)
+# Add CSRF middleware
+app.add_middleware(CSRFMiddleware)
 
-    # For authenticated endpoints, verify CSRF token
-    csrf_cookie = request.cookies.get("csrf_token")
-    csrf_header = request.headers.get("X-CSRF-Token")
-
-    if not csrf_cookie or not csrf_header or csrf_cookie != csrf_header:
-        logger.warning(f"CSRF validation failed for {request.url.path}")
-        return JSONResponse(
-            status_code=403,
-            content={"detail": "CSRF token validation failed"}
-        )
-
-    return await call_next(request)
-
-
-# CORS middleware (must be added after other middleware)
+# CORS middleware (must be added last so it wraps all other middleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,

@@ -2,7 +2,7 @@
 File endpoints - Refactored with helper functions and service layer.
 """
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File as FastAPIFile, status
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File as FastAPIFile, status, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -10,6 +10,7 @@ from uuid import UUID
 import io
 
 from ....core.database import get_db
+from ....core.rate_limit import get_rate_limiter
 from ....api.deps import get_current_active_user, require_course_member
 from ....api.utils.db_helpers import get_or_404, soft_delete
 from ....models.file import File, Folder, FileTag
@@ -22,6 +23,9 @@ from ....services.storage_service import storage_service
 from ....services.file_service import file_service
 
 router = APIRouter()
+
+# Rate limiters
+file_upload_rate_limiter = get_rate_limiter("10/minute")  # Limit file uploads
 
 
 # ==================== Folder Endpoints ====================
@@ -88,6 +92,7 @@ async def get_course_files(
 
 @router.post("", response_model=FileSchema, status_code=status.HTTP_201_CREATED)
 async def upload_file(
+    request: Request,
     course_id: UUID = Query(...),
     folder_id: UUID = Query(None),
     file: UploadFile = FastAPIFile(...),
@@ -97,9 +102,14 @@ async def upload_file(
     """
     Upload a file using FileService.
 
+    Rate limited to 10 uploads per minute to prevent abuse.
+
     Returns:
         File: Created file record
     """
+    # Apply rate limiting
+    await file_upload_rate_limiter.check_rate_limit(request)
+
     # Use FileService for centralized file handling
     db_file = await file_service.create_and_upload_file(
         db=db,

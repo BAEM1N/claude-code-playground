@@ -3,13 +3,16 @@ Security utilities for authentication and authorization.
 """
 from typing import Optional
 from datetime import datetime, timedelta
+import secrets
+import logging
 from jose import JWTError, jwt
-from fastapi import HTTPException, status, Depends
+from fastapi import HTTPException, status, Depends, Request, Response, Cookie
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from supabase import create_client, Client
 from .config import settings
 
-security = HTTPBearer()
+logger = logging.getLogger(__name__)
+security = HTTPBearer(auto_error=False)  # Allow optional bearer token
 
 
 def get_supabase_client() -> Client:
@@ -22,14 +25,47 @@ def get_supabase_client() -> Client:
     return create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
 
 
+async def get_token_from_request(
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
+) -> Optional[str]:
+    """
+    Extract token from either cookie or Authorization header.
+    Cookie takes precedence for better security.
+
+    Args:
+        request: FastAPI request object
+        credentials: Optional HTTP authorization credentials
+
+    Returns:
+        str: JWT token or None if not found
+    """
+    # Try to get token from cookie first (more secure)
+    token = request.cookies.get("access_token")
+
+    if token:
+        logger.debug("Token found in cookie")
+        return token
+
+    # Fall back to Authorization header for backward compatibility
+    if credentials:
+        logger.debug("Token found in Authorization header")
+        return credentials.credentials
+
+    return None
+
+
 async def verify_supabase_token(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
 ) -> dict:
     """
     Verify Supabase JWT token and return user info.
+    Supports both cookie-based and header-based authentication.
 
     Args:
-        credentials: HTTP authorization credentials
+        request: FastAPI request object
+        credentials: Optional HTTP authorization credentials
 
     Returns:
         dict: Decoded JWT payload with user info
@@ -37,7 +73,14 @@ async def verify_supabase_token(
     Raises:
         HTTPException: If token is invalid or expired
     """
-    token = credentials.credentials
+    token = await get_token_from_request(request, credentials)
+
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     try:
         # Decode and verify JWT token
@@ -59,9 +102,10 @@ async def verify_supabase_token(
         return payload
 
     except JWTError as e:
+        logger.error(f"JWT validation error: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Could not validate credentials: {str(e)}",
+            detail="Could not validate credentials",
         )
 
 
@@ -137,3 +181,96 @@ def check_permission(user_role: str, required_role: str) -> bool:
     required_level = role_hierarchy.get(required_role, 0)
 
     return user_level >= required_level
+
+
+def generate_csrf_token() -> str:
+    """
+    Generate a secure CSRF token.
+
+    Returns:
+        str: Random CSRF token
+    """
+    return secrets.token_urlsafe(32)
+
+
+def set_auth_cookies(response: Response, access_token: str, csrf_token: str) -> None:
+    """
+    Set authentication cookies with secure flags.
+
+    Args:
+        response: FastAPI response object
+        access_token: JWT access token
+        csrf_token: CSRF token
+    """
+    # Set access token cookie (HTTP-only, Secure, SameSite=Strict)
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,  # Prevents JavaScript access (XSS protection)
+        secure=settings.ENVIRONMENT == "production",  # HTTPS only in production
+        samesite="strict",  # CSRF protection
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,  # Convert to seconds
+        path="/",
+    )
+
+    # Set CSRF token cookie (readable by JavaScript for sending in headers)
+    response.set_cookie(
+        key="csrf_token",
+        value=csrf_token,
+        httponly=False,  # JavaScript needs to read this
+        secure=settings.ENVIRONMENT == "production",
+        samesite="strict",
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        path="/",
+    )
+
+    logger.info("Authentication cookies set successfully")
+
+
+def clear_auth_cookies(response: Response) -> None:
+    """
+    Clear authentication cookies on logout.
+
+    Args:
+        response: FastAPI response object
+    """
+    response.delete_cookie(key="access_token", path="/")
+    response.delete_cookie(key="csrf_token", path="/")
+    logger.info("Authentication cookies cleared")
+
+
+async def verify_csrf_token(request: Request) -> None:
+    """
+    Verify CSRF token for state-changing operations.
+
+    Args:
+        request: FastAPI request object
+
+    Raises:
+        HTTPException: If CSRF token is missing or invalid
+    """
+    # Skip CSRF check for GET, HEAD, OPTIONS
+    if request.method in ["GET", "HEAD", "OPTIONS"]:
+        return
+
+    # Get CSRF token from cookie
+    csrf_cookie = request.cookies.get("csrf_token")
+
+    # Get CSRF token from header
+    csrf_header = request.headers.get("X-CSRF-Token")
+
+    if not csrf_cookie or not csrf_header:
+        logger.warning("CSRF token missing")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="CSRF token missing"
+        )
+
+    if csrf_cookie != csrf_header:
+        logger.warning("CSRF token mismatch")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="CSRF token invalid"
+        )
+
+    logger.debug("CSRF token verified successfully")

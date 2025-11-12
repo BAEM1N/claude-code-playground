@@ -31,6 +31,8 @@ class WebSocketService {
 
   /**
    * Connect to WebSocket
+   * Token is no longer passed in URL for better security.
+   * Instead, it's sent in the first message after connection.
    */
   connect(courseId: string, token: string): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
@@ -39,20 +41,36 @@ class WebSocketService {
     }
 
     this.courseId = courseId;
-    const wsUrl = `${WS_URL}/ws/${courseId}?token=${token}`;
+    // Removed token from URL to prevent exposure in logs
+    const wsUrl = `${WS_URL}/ws/${courseId}`;
 
     try {
       this.ws = new WebSocket(wsUrl);
 
       this.ws.onopen = (): void => {
-        console.log('WebSocket connected');
-        this.reconnectAttempts = 0;
-        this.emit('connected');
+        console.log('WebSocket connection opened, sending authentication...');
+
+        // Send authentication as first message (more secure than URL parameter)
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+          this.ws.send(JSON.stringify({
+            type: 'auth',
+            token: token
+          }));
+        }
       };
 
       this.ws.onmessage = (event: MessageEvent): void => {
         try {
           const message: WebSocketMessage = JSON.parse(event.data);
+
+          // Handle authentication response
+          if (message.type === 'auth_success') {
+            console.log('WebSocket authenticated successfully');
+            this.reconnectAttempts = 0;
+            this.emit('connected');
+            return;
+          }
+
           this.handleMessage(message);
         } catch (error) {
           console.error('Error parsing WebSocket message:', error);

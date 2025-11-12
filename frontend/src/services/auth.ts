@@ -50,9 +50,36 @@ export const authService = {
 
     if (error) throw error;
 
-    // Store token
+    // Send token to backend to set secure HTTP-only cookies
     if (data.session) {
-      localStorage.setItem('access_token', data.session.access_token);
+      try {
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/auth/login`, {
+          method: 'POST',
+          credentials: 'include',  // Important: send cookies
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            access_token: data.session.access_token
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to set authentication cookies');
+        }
+
+        const { csrf_token } = await response.json();
+
+        // Store CSRF token in sessionStorage (not localStorage for better security)
+        sessionStorage.setItem('csrf_token', csrf_token);
+
+        // Remove old localStorage token if it exists
+        localStorage.removeItem('access_token');
+      } catch (err) {
+        console.error('Failed to set auth cookies:', err);
+        // Fallback: keep using localStorage for backward compatibility
+        localStorage.setItem('access_token', data.session.access_token);
+      }
     }
 
     return {
@@ -63,12 +90,27 @@ export const authService = {
 
   // Sign out
   signOut: async (): Promise<void> => {
-    const { error } = await supabase.auth.signOut();
+    // Clear backend cookies first
+    try {
+      const csrfToken = sessionStorage.getItem('csrf_token');
+      await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'X-CSRF-Token': csrfToken || '',
+        },
+      });
+    } catch (err) {
+      console.error('Failed to clear auth cookies:', err);
+    }
 
+    // Clear Supabase session
+    const { error } = await supabase.auth.signOut();
     if (error) throw error;
 
-    // Clear token
+    // Clear stored tokens
     localStorage.removeItem('access_token');
+    sessionStorage.removeItem('csrf_token');
   },
 
   // Get current user
@@ -89,11 +131,36 @@ export const authService = {
 
   // Listen to auth state changes
   onAuthStateChange: (callback: AuthStateChangeCallback) => {
-    return supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
-      if (session) {
-        localStorage.setItem('access_token', session.access_token);
-      } else {
+    return supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
+      if (session && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+        // Update cookies when token is refreshed
+        try {
+          const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/auth/login`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              access_token: session.access_token
+            })
+          });
+
+          if (response.ok) {
+            const { csrf_token } = await response.json();
+            sessionStorage.setItem('csrf_token', csrf_token);
+            localStorage.removeItem('access_token');
+          } else {
+            // Fallback
+            localStorage.setItem('access_token', session.access_token);
+          }
+        } catch (err) {
+          console.error('Failed to update auth cookies:', err);
+          localStorage.setItem('access_token', session.access_token);
+        }
+      } else if (event === 'SIGNED_OUT') {
         localStorage.removeItem('access_token');
+        sessionStorage.removeItem('csrf_token');
       }
 
       callback(event, session);

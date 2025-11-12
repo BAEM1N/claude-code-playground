@@ -32,18 +32,30 @@ import {
 // Create axios instance
 const api: AxiosInstance = axios.create({
   baseURL: API_URL,
+  withCredentials: true,  // Important: send cookies with requests
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Request interceptor to add auth token
+// Request interceptor to add auth token and CSRF token
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
+    // Add CSRF token for state-changing requests
+    if (config.method && !['get', 'head', 'options'].includes(config.method.toLowerCase())) {
+      const csrfToken = sessionStorage.getItem('csrf_token');
+      if (csrfToken && config.headers) {
+        config.headers['X-CSRF-Token'] = csrfToken;
+      }
+    }
+
+    // Fallback to Authorization header for backward compatibility
+    // (Cookie-based auth is preferred, but this maintains compatibility)
     const token = localStorage.getItem('access_token');
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
     return config;
   },
   (error) => Promise.reject(error)
@@ -54,9 +66,13 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Clear token and redirect to login
+      // Clear tokens and redirect to login
       localStorage.removeItem('access_token');
+      sessionStorage.removeItem('csrf_token');
       window.location.href = '/login';
+    } else if (error.response?.status === 403) {
+      // CSRF token might be invalid, try to get a new one
+      console.warn('CSRF token validation failed. Please refresh the page.');
     }
     return Promise.reject(error);
   }

@@ -6,6 +6,28 @@ import time
 from fastapi.testclient import TestClient
 
 
+@pytest.fixture(autouse=True, scope="function")
+def enable_rate_limiting():
+    """Enable actual rate limiting for these tests by restoring original rate limiters."""
+    import app.core.rate_limit as rate_limit_module
+    import app.api.v1.endpoints.auth as auth_module
+    import app.api.v1.endpoints.files as files_module
+
+    # Store the mocked version
+    from app.core.rate_limit import RateLimiter, get_rate_limiter as original_get_rate_limiter
+
+    # Create fresh rate limiters for this test
+    auth_module.login_rate_limiter = RateLimiter(5, 60, "5/minute")
+    auth_module.general_rate_limiter = RateLimiter(20, 60, "20/minute")
+
+    if hasattr(files_module, 'file_upload_rate_limiter'):
+        files_module.file_upload_rate_limiter = RateLimiter(10, 60, "10/minute")
+
+    yield
+
+    # Tests will cleanup automatically on next run
+
+
 class TestRateLimiting:
     """Test rate limiting functionality."""
 

@@ -404,4 +404,37 @@ export const learningPathsAPI = {
     api.get('/learning-paths/stats/my-stats'),
 };
 
+// Coding Environment API
+export const codingAPI = {
+  // Execute code (playground)
+  executeCode: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/coding/execute', data),
+
+  // Problems
+  getProblems: (params?: any): Promise<AxiosResponse<any>> =>
+    api.get('/coding/problems', { params }),
+  getProblem: (problemId: number): Promise<AxiosResponse<any>> =>
+    api.get(`/coding/problems/${problemId}`),
+  createProblem: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/coding/problems', data),
+
+  // Submissions
+  submitCode: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/coding/submit', data),
+  getMySubmissions: (params?: any): Promise<AxiosResponse<any>> =>
+    api.get('/coding/submissions/my', { params }),
+
+  // Saved code
+  getSavedCodes: (): Promise<AxiosResponse<any>> =>
+    api.get('/coding/saved'),
+  saveCode: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/coding/saved', data),
+  deleteSavedCode: (codeId: number): Promise<AxiosResponse<void>> =>
+    api.delete(`/coding/saved/${codeId}`),
+
+  // Statistics
+  getMyStats: (): Promise<AxiosResponse<any>> =>
+    api.get('/coding/stats/my'),
+};
+
 export default api;

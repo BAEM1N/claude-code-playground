@@ -35,6 +35,9 @@ import AIConversationsPage from './pages/AIConversationsPage';
 import LearningPathsPage from './pages/LearningPathsPage';
 import LearningPathDetailPage from './pages/LearningPathDetailPage';
 
+// Coding Environment Pages
+import CodingPlaygroundPage from './pages/CodingPlaygroundPage';
+
 // Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -229,6 +232,16 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <LearningPathDetailPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Coding Environment */}
+      <Route
+        path="/coding-playground"
+        element={
+          <ProtectedRoute>
+            <CodingPlaygroundPage />
           </ProtectedRoute>
         }
       />

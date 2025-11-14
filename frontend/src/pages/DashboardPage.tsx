@@ -58,10 +58,10 @@ const DashboardPage: React.FC = () => {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Quick Actions */}
-        <div className="mb-8 flex gap-4">
+        <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
           <Link
             to="/ai-assistant"
-            className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg p-4 hover:from-purple-700 hover:to-indigo-700 transition-all shadow-lg"
+            className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg p-4 hover:from-purple-700 hover:to-indigo-700 transition-all shadow-lg"
           >
             <div className="flex items-center justify-between">
               <div>
@@ -74,8 +74,22 @@ const DashboardPage: React.FC = () => {
             </div>
           </Link>
           <Link
+            to="/coding-playground"
+            className="bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg p-4 hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold">코딩 플레이그라운드</h3>
+                <p className="text-sm opacity-90 mt-1">온라인 코드 실행 환경</p>
+              </div>
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+              </svg>
+            </div>
+          </Link>
+          <Link
             to="/calendar"
-            className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg p-4 hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg"
+            className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg p-4 hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg"
           >
             <div className="flex items-center justify-between">
               <div>

@@ -80,7 +80,7 @@ class File(FileBase):
     created_at: datetime
     updated_at: datetime
     is_deleted: bool
-    tags: List[FileTag] = []
+    # tags: List[FileTag] = []  # Removed to avoid serialization issues
 
     class Config:
         from_attributes = True

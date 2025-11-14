@@ -4,10 +4,13 @@ MinIO object storage service.
 from typing import Optional, BinaryIO
 from datetime import timedelta
 import uuid
+import logging
 from pathlib import Path
 from minio import Minio
 from minio.error import S3Error
 from ..core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class StorageService:
@@ -28,9 +31,9 @@ class StorageService:
         try:
             if not self.client.bucket_exists(self.bucket_name):
                 self.client.make_bucket(self.bucket_name)
-                print(f"Created bucket: {self.bucket_name}")
+                logger.info(f"Created bucket: {self.bucket_name}")
         except S3Error as e:
-            print(f"Error ensuring bucket: {e}")
+            logger.error(f"Error ensuring bucket: {e}", exc_info=True)
             raise
 
     def upload_file(
@@ -79,7 +82,7 @@ class StorageService:
             return object_path
 
         except S3Error as e:
-            print(f"Error uploading file: {e}")
+            logger.error(f"Error uploading file: {e}", exc_info=True)
             raise
 
     def download_file(self, file_path: str) -> bytes:
@@ -100,7 +103,7 @@ class StorageService:
             return data
 
         except S3Error as e:
-            print(f"Error downloading file: {e}")
+            logger.error(f"Error downloading file: {e}", exc_info=True)
             raise
 
     def get_presigned_url(
@@ -127,7 +130,7 @@ class StorageService:
             return url
 
         except S3Error as e:
-            print(f"Error getting presigned URL: {e}")
+            logger.error(f"Error getting presigned URL: {e}", exc_info=True)
             raise
 
     def get_presigned_upload_url(
@@ -154,7 +157,7 @@ class StorageService:
             return url
 
         except S3Error as e:
-            print(f"Error getting presigned upload URL: {e}")
+            logger.error(f"Error getting presigned upload URL: {e}", exc_info=True)
             raise
 
     def delete_file(self, file_path: str) -> bool:
@@ -172,7 +175,7 @@ class StorageService:
             return True
 
         except S3Error as e:
-            print(f"Error deleting file: {e}")
+            logger.error(f"Error deleting file: {e}", exc_info=True)
             return False
 
     def list_files(self, prefix: str) -> list:
@@ -194,7 +197,7 @@ class StorageService:
             return [obj for obj in objects]
 
         except S3Error as e:
-            print(f"Error listing files: {e}")
+            logger.error(f"Error listing files: {e}", exc_info=True)
             return []
 
     def file_exists(self, file_path: str) -> bool:

@@ -31,6 +31,10 @@ import AIAssistantPage from './pages/AIAssistantPage';
 import AIUsageDashboard from './pages/AIUsageDashboard';
 import AIConversationsPage from './pages/AIConversationsPage';
 
+// Learning Paths Pages
+import LearningPathsPage from './pages/LearningPathsPage';
+import LearningPathDetailPage from './pages/LearningPathDetailPage';
+
 // Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -207,6 +211,24 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <AIConversationsPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Learning Paths */}
+      <Route
+        path="/learning-paths"
+        element={
+          <ProtectedRoute>
+            <LearningPathsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/learning-paths/:pathId"
+        element={
+          <ProtectedRoute>
+            <LearningPathDetailPage />
           </ProtectedRoute>
         }
       />

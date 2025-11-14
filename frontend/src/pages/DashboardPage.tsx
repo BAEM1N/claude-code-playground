@@ -11,6 +11,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useCourses } from '../hooks/useCourse';
 import { useMyAIUsageStats } from '../hooks/useAI';
+import { useLearningPathRecommendations } from '../hooks/useLearningPaths';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorAlert from '../components/common/ErrorAlert';
 
@@ -18,6 +19,7 @@ const DashboardPage: React.FC = () => {
   const { user, profile } = useAuth();
   const { data: courses, isLoading, error } = useCourses();
   const { data: aiStats } = useMyAIUsageStats(30);
+  const { data: recommendations } = useLearningPathRecommendations(3);
 
   if (isLoading) {
     return (
@@ -282,6 +284,66 @@ const DashboardPage: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* Learning Path Recommendations */}
+        {recommendations && recommendations.recommendations.length > 0 && (
+          <div className="mt-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold text-gray-900">추천 학습 경로</h2>
+              <Link
+                to="/learning-paths"
+                className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
+              >
+                모두 보기 →
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {recommendations.recommendations.slice(0, 3).map((rec) => {
+                const path = rec.learning_path;
+                return (
+                  <Link
+                    key={path.id}
+                    to={`/learning-paths/${path.id}`}
+                    className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow overflow-hidden group"
+                  >
+                    <div className={`${path.color || 'bg-indigo-600'} p-4 text-white`}>
+                      <h3 className="text-lg font-semibold group-hover:underline mb-1">
+                        {path.title}
+                      </h3>
+                      <div className="flex items-center text-xs opacity-90">
+                        <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                        추천 점수 {rec.recommendation_score.toFixed(0)}
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <p className="text-sm text-gray-600 line-clamp-2 mb-3">{path.description}</p>
+                      <div className="bg-indigo-50 rounded p-2">
+                        <p className="text-xs text-indigo-900 font-medium mb-1">왜 추천하나요?</p>
+                        <p className="text-xs text-indigo-700 line-clamp-2">{rec.recommendation_reason}</p>
+                      </div>
+                      {rec.user_progress && (
+                        <div className="mt-3">
+                          <div className="flex items-center justify-between text-xs mb-1">
+                            <span className="text-gray-600">진행률</span>
+                            <span className="font-medium text-gray-900">{rec.user_progress.progress_percentage.toFixed(0)}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-1.5">
+                            <div
+                              className="bg-indigo-600 h-1.5 rounded-full"
+                              style={{ width: `${rec.user_progress.progress_percentage}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Quick Links */}
         <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">

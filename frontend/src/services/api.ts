@@ -373,4 +373,35 @@ export const aiAPI = {
     api.get(`/ai/usage/course/${courseId}`, { params: { days } }),
 };
 
+// Learning Paths API
+export const learningPathsAPI = {
+  // Get all learning paths
+  getLearningPaths: (params?: { difficulty?: string; tag?: string; skip?: number; limit?: number }): Promise<AxiosResponse<any>> =>
+    api.get('/learning-paths/', { params }),
+
+  // Get single learning path with progress
+  getLearningPath: (pathId: number): Promise<AxiosResponse<any>> =>
+    api.get(`/learning-paths/${pathId}`),
+
+  // Create learning path (instructor only)
+  createLearningPath: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/learning-paths/', data),
+
+  // Enroll in learning path
+  enrollInPath: (pathId: number): Promise<AxiosResponse<any>> =>
+    api.post(`/learning-paths/${pathId}/enroll`),
+
+  // Update item progress
+  updateItemProgress: (itemId: number, data: any): Promise<AxiosResponse<any>> =>
+    api.post(`/learning-paths/items/${itemId}/progress`, data),
+
+  // Get recommendations
+  getRecommendations: (limit?: number): Promise<AxiosResponse<any>> =>
+    api.get('/learning-paths/recommendations/for-me', { params: { limit } }),
+
+  // Get user stats
+  getMyStats: (): Promise<AxiosResponse<any>> =>
+    api.get('/learning-paths/stats/my-stats'),
+};
+
 export default api;

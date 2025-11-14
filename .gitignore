@@ -19,34 +19,38 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
 venv/
-env/
 ENV/
+env/
 
-# Backend
-backend/.env
-backend/app.db
-backend/app.db-*
-backend/alembic/versions/*.py
-!backend/alembic/versions/.gitkeep
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp/
+.pnp.js
+coverage/
+.npm
+.eslintcache
+.node_repl_history
+*.tgz
+.yarn-integrity
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-# Frontend
-frontend/node_modules/
-frontend/build/
-frontend/.env
-frontend/.env.local
-frontend/.env.development.local
-frontend/.env.test.local
-frontend/.env.production.local
-frontend/npm-debug.log*
-frontend/yarn-debug.log*
-frontend/yarn-error.log*
+# React
+/frontend/build
 
-# Docker
-*.log
+# Environment
+.env
+.env.local
+.env.*.local
+*.env
 
-# IDE
+# IDEs
 .vscode/
 .idea/
 *.swp
@@ -54,8 +58,33 @@ frontend/yarn-error.log*
 *~
 .DS_Store
 
-# Testing
-.coverage
-htmlcov/
-.pytest_cache/
-.tox/
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+app.db
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Certificates
+*.pem
+*.key
+*.crt
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Secrets
+*password*.txt
+secrets/

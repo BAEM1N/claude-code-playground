@@ -1,0 +1,28 @@
+[Unit]
+Description=MinIO Object Storage
+Documentation=https://docs.min.io
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=notify
+User=minio-user
+Group=minio-user
+EnvironmentFile=/etc/default/minio
+ExecStart=/usr/local/bin/minio server $MINIO_OPTS $MINIO_VOLUMES
+
+# 재시작 정책
+Restart=always
+RestartSec=10
+
+# 보안 설정
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/mnt/minio
+
+# 리소스 제한
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

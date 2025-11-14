@@ -169,6 +169,32 @@ claude-code-playground/
 
 ## 🚀 빠른 시작
 
+### 📦 배포 옵션
+
+#### 1️⃣ 프로덕션 배포 (Ubuntu 서버)
+
+**모놀리스 구조로 단일 서버에 배포:**
+
+```bash
+# 1. 서버 접속
+ssh user@your-server-ip
+
+# 2. 저장소 클론
+git clone https://github.com/your-username/claude-code-playground.git
+cd claude-code-playground/deployment
+
+# 3. 자동 설치 스크립트 실행
+sudo ./setup-server.sh
+```
+
+**상세 가이드:** [📘 DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)
+
+**배포 디렉토리:** [📁 deployment/](./deployment/)
+
+---
+
+#### 2️⃣ 로컬 개발 환경
+
 ### 전제 조건
 
 **필수 버전:**

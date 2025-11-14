@@ -28,6 +28,8 @@ import CalendarPage from './pages/CalendarPage';
 
 // AI Assistant Pages
 import AIAssistantPage from './pages/AIAssistantPage';
+import AIUsageDashboard from './pages/AIUsageDashboard';
+import AIConversationsPage from './pages/AIConversationsPage';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -189,6 +191,22 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <AIAssistantPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/ai-usage"
+        element={
+          <ProtectedRoute>
+            <AIUsageDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/ai-conversations"
+        element={
+          <ProtectedRoute>
+            <AIConversationsPage />
           </ProtectedRoute>
         }
       />

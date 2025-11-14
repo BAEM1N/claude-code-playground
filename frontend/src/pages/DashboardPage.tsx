@@ -10,12 +10,14 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useCourses } from '../hooks/useCourse';
+import { useMyAIUsageStats } from '../hooks/useAI';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorAlert from '../components/common/ErrorAlert';
 
 const DashboardPage: React.FC = () => {
   const { user, profile } = useAuth();
   const { data: courses, isLoading, error } = useCourses();
+  const { data: aiStats } = useMyAIUsageStats(30);
 
   if (isLoading) {
     return (
@@ -53,8 +55,40 @@ const DashboardPage: React.FC = () => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Quick Actions */}
+        <div className="mb-8 flex gap-4">
+          <Link
+            to="/ai-assistant"
+            className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg p-4 hover:from-purple-700 hover:to-indigo-700 transition-all shadow-lg"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold">AI 어시스턴트</h3>
+                <p className="text-sm opacity-90 mt-1">코드 리뷰, 개념 설명, 퀴즈 생성</p>
+              </div>
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+            </div>
+          </Link>
+          <Link
+            to="/calendar"
+            className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg p-4 hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold">학습 캘린더</h3>
+                <p className="text-sm opacity-90 mt-1">일정 관리 및 과제 확인</p>
+              </div>
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+          </Link>
+        </div>
+
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-white overflow-hidden shadow rounded-lg">
             <div className="p-5">
               <div className="flex items-center">
@@ -140,6 +174,41 @@ const DashboardPage: React.FC = () => {
               </div>
             </div>
           </div>
+
+          <Link to="/ai-assistant" className="bg-gradient-to-br from-purple-50 to-indigo-50 overflow-hidden shadow rounded-lg border-2 border-purple-200 hover:border-purple-300 transition-colors">
+            <div className="p-5">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg
+                    className="h-6 w-6 text-purple-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                    />
+                  </svg>
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt className="text-sm font-medium text-purple-700 truncate">AI 사용 (30일)</dt>
+                    <dd className="text-3xl font-semibold text-purple-900">
+                      {aiStats?.total_requests || 0}
+                    </dd>
+                    {aiStats && aiStats.total_tokens > 0 && (
+                      <dd className="text-xs text-purple-600 mt-1">
+                        {(aiStats.total_tokens / 1000).toFixed(1)}K tokens
+                      </dd>
+                    )}
+                  </dl>
+                </div>
+              </div>
+            </div>
+          </Link>
         </div>
 
         {/* Course List */}

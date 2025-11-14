@@ -330,4 +330,47 @@ export const calendarAPI = createAPIService<CalendarEvent>(api, '/calendar/event
     api.get('/calendar/export/ical', { params, responseType: 'blob' }),
 });
 
+// AI Assistant API
+export const aiAPI = {
+  // Get available providers
+  getProviders: (): Promise<AxiosResponse<any>> =>
+    api.get('/ai/providers'),
+
+  // Chat
+  chat: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/ai/chat', data),
+
+  // Code review
+  reviewCode: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/ai/code-review', data),
+  submitCodeReviewFeedback: (data: { review_id: number; was_helpful: boolean }): Promise<AxiosResponse<any>> =>
+    api.post('/ai/code-review/feedback', data),
+
+  // Concept explanation
+  explainConcept: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/ai/explain', data),
+
+  // Quiz generation
+  generateQuiz: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/ai/generate-quiz', data),
+
+  // Summarization
+  summarize: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/ai/summarize', data),
+
+  // Conversations
+  getConversations: (params?: any): Promise<AxiosResponse<any[]>> =>
+    api.get('/ai/conversations', { params }),
+  getConversation: (conversationId: number): Promise<AxiosResponse<any>> =>
+    api.get(`/ai/conversations/${conversationId}`),
+  deleteConversation: (conversationId: number): Promise<AxiosResponse<void>> =>
+    api.delete(`/ai/conversations/${conversationId}`),
+
+  // Usage statistics
+  getMyUsageStats: (days: number = 30): Promise<AxiosResponse<any>> =>
+    api.get('/ai/usage/my-stats', { params: { days } }),
+  getCourseUsageStats: (courseId: number, days: number = 30): Promise<AxiosResponse<any>> =>
+    api.get(`/ai/usage/course/${courseId}`, { params: { days } }),
+};
+
 export default api;

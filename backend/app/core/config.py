@@ -54,6 +54,13 @@ class BaseConfig(BaseSettings):
             return [i.strip() for i in v.split(",")]
         return v
 
+    @field_validator("ALLOWED_FILE_TYPES", mode="before")
+    @classmethod
+    def assemble_allowed_file_types(cls, v):
+        if isinstance(v, str):
+            return [i.strip() for i in v.split(",")]
+        return v
+
     # Security
     # CRITICAL: SECRET_KEY MUST be set via environment variable
     # Generate a secure key: openssl rand -hex 32

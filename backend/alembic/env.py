@@ -14,9 +14,18 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 # access to the values within the .ini file in use.
 config = context.config
 
-# Load environment variables
+# Set required security environment variables BEFORE loading .env
+# These are required by config.py but not actually used during migrations
+os.environ.setdefault("SUPABASE_URL", "http://localhost")
+os.environ.setdefault("SUPABASE_KEY", "dummy")
+os.environ.setdefault("SUPABASE_JWT_SECRET", "dummy")
+os.environ.setdefault("SECRET_KEY", "dummy-secret-key-for-migration")
+os.environ.setdefault("MINIO_ACCESS_KEY", "dummy")
+os.environ.setdefault("MINIO_SECRET_KEY", "dummy")
+
+# Load environment variables from .env file
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv(override=False)  # Don't override defaults set above
 
 # Override the sqlalchemy.url from environment variable if present
 database_url = os.getenv("DATABASE_URL")
@@ -28,18 +37,23 @@ if database_url:
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Import all models to ensure they are registered with Base
+# Import Base directly without importing app.models (which imports settings)
 from app.db.base import Base
-from app.models import (
-    UserProfile, Course, CourseMember, Channel, Message, MessageReaction, Mention,
-    File, Folder, FileTag, MessageFile, Notification, Announcement,
-    Assignment, Submission, Grade, AssignmentFile, SubmissionFile,
-    AttendanceSession, AttendanceRecord, Quiz, Question, QuizAttempt, Answer,
-    LearningProgress, Achievement, LearningActivity, Milestone, MilestoneCompletion,
-    CalendarEvent, EventReminder, EventAttendee, PersonalEvent,
-    LearningTrack, LearningModule, LearningChapter, LearningTopic, TopicProgress, NotebookExecution,
-    AIConversation, AIMessage, AICodeReview, AIQuizGeneration, AIUsageLog,
-)
+
+# Import models individually to avoid loading settings
+from app.models.user import UserProfile
+from app.models.course import Course, CourseMember
+from app.models.channel import Channel
+from app.models.message import Message, MessageReaction, Mention
+from app.models.file import File, Folder, FileTag, MessageFile
+from app.models.notification import Notification, Announcement
+from app.models.assignment import Assignment, Submission, Grade, AssignmentFile, SubmissionFile
+from app.models.attendance import AttendanceSession, AttendanceRecord
+from app.models.quiz import Quiz, Question, QuizAttempt, Answer
+from app.models.progress import LearningProgress, Achievement, LearningActivity, Milestone, MilestoneCompletion
+from app.models.calendar import CalendarEvent, EventReminder, EventAttendee, PersonalEvent
+from app.models.learning import LearningTrack, LearningModule, LearningChapter, LearningTopic, TopicProgress, NotebookExecution
+from app.models.ai_assistant import AIConversation, AIMessage, AICodeReview, AIQuizGeneration, AIUsageLog
 
 # Set target metadata for autogenerate support
 target_metadata = Base.metadata

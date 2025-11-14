@@ -26,6 +26,9 @@ import QuizPage from './pages/QuizPage';
 import ProgressPage from './pages/ProgressPage';
 import CalendarPage from './pages/CalendarPage';
 
+// AI Assistant Pages
+import AIAssistantPage from './pages/AIAssistantPage';
+
 // Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -169,6 +172,23 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <CalendarPage />
+          </ProtectedRoute>
+        }
+      />
+      {/* AI Assistant */}
+      <Route
+        path="/ai-assistant"
+        element={
+          <ProtectedRoute>
+            <AIAssistantPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/courses/:courseId/ai-assistant"
+        element={
+          <ProtectedRoute>
+            <AIAssistantPage />
           </ProtectedRoute>
         }
       />

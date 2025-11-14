@@ -435,6 +435,18 @@ export const codingAPI = {
   // Statistics
   getMyStats: (): Promise<AxiosResponse<any>> =>
     api.get('/coding/stats/my'),
+
+  // Collaborative sessions
+  createSession: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/coding/sessions', null, { params: data }),
+  getSessions: (params?: any): Promise<AxiosResponse<any>> =>
+    api.get('/coding/sessions', { params }),
+  getSession: (sessionId: number): Promise<AxiosResponse<any>> =>
+    api.get(`/coding/sessions/${sessionId}`),
+  joinSession: (sessionId: number): Promise<AxiosResponse<any>> =>
+    api.post(`/coding/sessions/${sessionId}/join`),
+  endSession: (sessionId: number): Promise<AxiosResponse<any>> =>
+    api.post(`/coding/sessions/${sessionId}/end`),
 };
 
 export default api;

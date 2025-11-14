@@ -15,6 +15,8 @@ from ....models.coding import (
     CodeExecution,
     SavedCode,
     SubmissionStatus,
+    CollaborativeCodingSession,
+    SessionParticipant,
 )
 from ....models.user import User
 from ....schemas.coding import (
@@ -458,3 +460,215 @@ async def get_my_coding_stats(
         difficulty_breakdown={},  # Could calculate from solved problems
         recent_submissions=recent_submissions,
     )
+
+
+# ===== Collaborative Coding Sessions =====
+
+@router.post("/sessions", status_code=status.HTTP_201_CREATED)
+async def create_collaborative_session(
+    title: str,
+    language: str,
+    description: Optional[str] = None,
+    course_id: Optional[int] = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Create a collaborative coding session"""
+    from datetime import datetime
+    from ....services.code_executor import code_executor
+
+    session = CollaborativeCodingSession(
+        title=title,
+        description=description,
+        language=language,
+        code=code_executor.get_starter_code(language),
+        host_id=current_user.id,
+        course_id=course_id,
+        is_active=True,
+        started_at=datetime.utcnow(),
+    )
+
+    db.add(session)
+    await db.flush()
+
+    # Add host as participant
+    participant = SessionParticipant(
+        session_id=session.id,
+        user_id=current_user.id,
+        role="host",
+        is_active=True,
+    )
+
+    db.add(participant)
+    await db.commit()
+    await db.refresh(session)
+
+    return {
+        "id": session.id,
+        "title": session.title,
+        "description": session.description,
+        "language": session.language,
+        "code": session.code,
+        "host_id": session.host_id,
+        "course_id": session.course_id,
+        "is_active": session.is_active,
+        "started_at": session.started_at.isoformat() if session.started_at else None,
+        "created_at": session.created_at.isoformat(),
+    }
+
+
+@router.get("/sessions")
+async def get_collaborative_sessions(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    course_id: Optional[int] = None,
+    is_active: Optional[bool] = None,
+):
+    """Get all collaborative coding sessions"""
+    query = select(CollaborativeCodingSession)
+
+    if course_id:
+        query = query.where(CollaborativeCodingSession.course_id == course_id)
+    if is_active is not None:
+        query = query.where(CollaborativeCodingSession.is_active == is_active)
+
+    query = query.order_by(CollaborativeCodingSession.created_at.desc())
+
+    result = await db.execute(query)
+    sessions = result.scalars().all()
+
+    return [
+        {
+            "id": s.id,
+            "title": s.title,
+            "description": s.description,
+            "language": s.language,
+            "host_id": s.host_id,
+            "course_id": s.course_id,
+            "is_active": s.is_active,
+            "started_at": s.started_at.isoformat() if s.started_at else None,
+            "created_at": s.created_at.isoformat(),
+        }
+        for s in sessions
+    ]
+
+
+@router.get("/sessions/{session_id}")
+async def get_collaborative_session(
+    session_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get a collaborative coding session"""
+    result = await db.execute(
+        select(CollaborativeCodingSession)
+        .where(CollaborativeCodingSession.id == session_id)
+    )
+    session = result.scalar_one_or_none()
+
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # Get participants
+    participants_result = await db.execute(
+        select(SessionParticipant)
+        .where(SessionParticipant.session_id == session_id)
+        .where(SessionParticipant.is_active == True)
+    )
+    participants = participants_result.scalars().all()
+
+    return {
+        "id": session.id,
+        "title": session.title,
+        "description": session.description,
+        "language": session.language,
+        "code": session.code,
+        "host_id": session.host_id,
+        "course_id": session.course_id,
+        "is_active": session.is_active,
+        "started_at": session.started_at.isoformat() if session.started_at else None,
+        "created_at": session.created_at.isoformat(),
+        "participants": [
+            {
+                "user_id": p.user_id,
+                "role": p.role,
+                "cursor_position": p.cursor_position,
+                "joined_at": p.joined_at.isoformat(),
+            }
+            for p in participants
+        ],
+    }
+
+
+@router.post("/sessions/{session_id}/join")
+async def join_collaborative_session(
+    session_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Join a collaborative coding session"""
+    # Check if session exists
+    result = await db.execute(
+        select(CollaborativeCodingSession)
+        .where(CollaborativeCodingSession.id == session_id)
+    )
+    session = result.scalar_one_or_none()
+
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    if not session.is_active:
+        raise HTTPException(status_code=400, detail="Session is not active")
+
+    # Check if already joined
+    existing_result = await db.execute(
+        select(SessionParticipant)
+        .where(SessionParticipant.session_id == session_id)
+        .where(SessionParticipant.user_id == current_user.id)
+    )
+    existing = existing_result.scalar_one_or_none()
+
+    if existing:
+        existing.is_active = True
+        existing.left_at = None
+    else:
+        participant = SessionParticipant(
+            session_id=session_id,
+            user_id=current_user.id,
+            role="participant",
+            is_active=True,
+        )
+        db.add(participant)
+
+    await db.commit()
+
+    return {"success": True, "session_id": session_id}
+
+
+@router.post("/sessions/{session_id}/end")
+async def end_collaborative_session(
+    session_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """End a collaborative coding session (host only)"""
+    from datetime import datetime
+
+    result = await db.execute(
+        select(CollaborativeCodingSession)
+        .where(CollaborativeCodingSession.id == session_id)
+    )
+    session = result.scalar_one_or_none()
+
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    if session.host_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the host can end the session")
+
+    session.is_active = False
+    session.ended_at = datetime.utcnow()
+
+    await db.commit()
+
+    return {"success": True, "session_id": session_id}

@@ -38,6 +38,12 @@ const CodingPlaygroundPage: React.FC = () => {
   const [code, setCode] = useState<string>(LANGUAGE_TEMPLATES.python);
   const [input, setInput] = useState<string>('');
   const [output, setOutput] = useState<string>('');
+
+  // Collaborative mode states
+  const [collaborativeMode, setCollaborativeMode] = useState(false);
+  const [sessionId, setSessionId] = useState<number | null>(null);
+  const [sessionTitle, setSessionTitle] = useState('');
+  const [participants, setParticipants] = useState<any[]>([]);
   const [error, setError] = useState<string>('');
   const [isRunning, setIsRunning] = useState(false);
   const [executionTime, setExecutionTime] = useState<number | null>(null);

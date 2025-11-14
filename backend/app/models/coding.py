@@ -181,3 +181,55 @@ class SavedCode(Base):
 
     def __repr__(self):
         return f"<SavedCode(id={self.id}, title='{self.title}', language='{self.language}')>"
+
+
+class CollaborativeCodingSession(Base):
+    """Collaborative coding session for real-time code editing"""
+    __tablename__ = "collaborative_coding_sessions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(200), nullable=False)
+    description = Column(Text)
+    language = Column(String(50), nullable=False)
+    code = Column(Text, nullable=False, default="")
+    host_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    course_id = Column(Integer, ForeignKey("courses.id", ondelete="CASCADE"))
+    is_active = Column(Boolean, default=True, nullable=False)
+    max_participants = Column(Integer, default=10, nullable=False)
+    started_at = Column(DateTime)
+    ended_at = Column(DateTime)
+
+    # Relationships
+    host = relationship("User", foreign_keys=[host_id])
+    course = relationship("Course", foreign_keys=[course_id])
+    participants = relationship("SessionParticipant", back_populates="session", cascade="all, delete-orphan")
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    def __repr__(self):
+        return f"<CollaborativeCodingSession(id={self.id}, title='{self.title}', is_active={self.is_active})>"
+
+
+class SessionParticipant(Base):
+    """Participant in a collaborative coding session"""
+    __tablename__ = "session_participants"
+    __table_args__ = (
+        UniqueConstraint('session_id', 'user_id', name='uix_session_user'),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("collaborative_coding_sessions.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    role = Column(String(20), nullable=False)  # host, participant
+    cursor_position = Column(JSONB)  # {line: 1, column: 0}
+    is_active = Column(Boolean, default=True, nullable=False)
+    joined_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    left_at = Column(DateTime)
+
+    # Relationships
+    session = relationship("CollaborativeCodingSession", back_populates="participants")
+    user = relationship("User", foreign_keys=[user_id])
+
+    def __repr__(self):
+        return f"<SessionParticipant(session_id={self.session_id}, user_id={self.user_id}, role='{self.role}')>"

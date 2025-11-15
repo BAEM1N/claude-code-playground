@@ -37,6 +37,8 @@ from ....schemas.assignment import (
 from ....services.assignment_service import AssignmentService
 from ....services.notification_service import notification_service
 from ....services.storage_service import storage_service
+from ....services.gamification_service import award_xp_to_user, get_xp_for_activity
+from ....models.gamification import XPActivityType
 
 router = APIRouter()
 
@@ -225,6 +227,24 @@ async def submit_assignment(
         related_id=submission.id,
         user_id=assignment.created_by
     )
+
+    # Award XP for assignment submission
+    try:
+        user_id = UUID(current_user["id"])
+        xp_amount = get_xp_for_activity("assignment_submit")
+
+        await award_xp_to_user(
+            db=db,
+            user_id=user_id,
+            activity_type=XPActivityType.ASSIGNMENT_SUBMIT,
+            xp_amount=xp_amount,
+            points_amount=xp_amount // 5,
+            description=f"과제 '{assignment.title}' 제출",
+            related_entity_type="assignment_submission",
+            related_entity_id=submission.id
+        )
+    except Exception as e:
+        print(f"Failed to award XP for assignment: {e}")
 
     return submission
 

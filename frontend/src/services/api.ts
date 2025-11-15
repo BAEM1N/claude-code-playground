@@ -496,4 +496,51 @@ export const virtualClassroomAPI = {
     api.get('/virtual-classroom/classrooms/stats/my-stats'),
 };
 
+// Forum API
+export const forumAPI = {
+  // Forums
+  getForums: (params?: any): Promise<AxiosResponse<any>> =>
+    api.get('/forum/forums', { params }),
+  createForum: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/forum/forums', data),
+
+  // Posts
+  getPosts: (params?: any): Promise<AxiosResponse<any>> =>
+    api.get('/forum/posts', { params }),
+  getPost: (postId: number): Promise<AxiosResponse<any>> =>
+    api.get(`/forum/posts/${postId}`),
+  createPost: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/forum/posts', data),
+  updatePost: (postId: number, data: any): Promise<AxiosResponse<any>> =>
+    api.put(`/forum/posts/${postId}`, data),
+  deletePost: (postId: number): Promise<AxiosResponse<void>> =>
+    api.delete(`/forum/posts/${postId}`),
+
+  // Replies
+  getReplies: (postId: number): Promise<AxiosResponse<any>> =>
+    api.get(`/forum/posts/${postId}/replies`),
+  createReply: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/forum/replies', data),
+  markBestAnswer: (replyId: number): Promise<AxiosResponse<any>> =>
+    api.put(`/forum/replies/${replyId}/best-answer`),
+
+  // Voting
+  votePost: (postId: number, voteType: string): Promise<AxiosResponse<any>> =>
+    api.post(`/forum/posts/${postId}/vote`, { vote_type: voteType }),
+  voteReply: (replyId: number, voteType: string): Promise<AxiosResponse<any>> =>
+    api.post(`/forum/replies/${replyId}/vote`, { vote_type: voteType }),
+
+  // Bookmarks
+  createBookmark: (postId: number): Promise<AxiosResponse<any>> =>
+    api.post('/forum/bookmarks', { post_id: postId }),
+  deleteBookmark: (postId: number): Promise<AxiosResponse<void>> =>
+    api.delete(`/forum/bookmarks/${postId}`),
+
+  // Statistics
+  getStatistics: (): Promise<AxiosResponse<any>> =>
+    api.get('/forum/stats/overview'),
+  getMyStats: (): Promise<AxiosResponse<any>> =>
+    api.get('/forum/stats/my-stats'),
+};
+
 export default api;

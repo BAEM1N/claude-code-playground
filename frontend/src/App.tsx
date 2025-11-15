@@ -41,6 +41,9 @@ import CodingPlaygroundPage from './pages/CodingPlaygroundPage';
 // Virtual Classroom Pages
 import VirtualClassroomPage from './pages/VirtualClassroomPage';
 
+// Forum Pages
+import ForumPage from './pages/ForumPage';
+
 // Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -255,6 +258,16 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <VirtualClassroomPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Forum */}
+      <Route
+        path="/forum"
+        element={
+          <ProtectedRoute>
+            <ForumPage />
           </ProtectedRoute>
         }
       />

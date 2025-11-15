@@ -2,7 +2,7 @@
 API v1 router.
 """
 from fastapi import APIRouter
-from .endpoints import auth, courses, channels, messages, files, notifications, assignments, assignment_files, attendance, quiz, progress, calendar, learning, ai_assistant, learning_paths, coding, virtual_classroom
+from .endpoints import auth, courses, channels, messages, files, notifications, assignments, assignment_files, attendance, quiz, progress, calendar, learning, ai_assistant, learning_paths, coding, virtual_classroom, forum
 
 api_router = APIRouter()
 
@@ -23,3 +23,4 @@ api_router.include_router(ai_assistant.router, prefix="/ai", tags=["ai-assistant
 api_router.include_router(learning_paths.router, prefix="/learning-paths", tags=["learning-paths"])
 api_router.include_router(coding.router, prefix="/coding", tags=["coding"])
 api_router.include_router(virtual_classroom.router, prefix="/virtual-classroom", tags=["virtual-classroom"])
+api_router.include_router(forum.router, prefix="/forum", tags=["forum"])

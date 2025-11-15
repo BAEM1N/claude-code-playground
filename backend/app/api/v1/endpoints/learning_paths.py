@@ -1,11 +1,11 @@
 """
-Learning Paths API endpoints
+Learning Paths API endpoints - Performance Optimized
 """
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, or_, desc
 from sqlalchemy.orm import selectinload
-from typing import List, Optional
+from typing import List, Optional, Dict
 from datetime import datetime
 from collections import Counter
 
@@ -45,34 +45,38 @@ from ....schemas.learning_path import (
 router = APIRouter()
 
 
-# Helper function to calculate progress
+# Helper function to calculate progress (optimized)
 async def calculate_path_progress(
     db: AsyncSession,
     user_id: int,
     learning_path_id: int
 ) -> float:
-    """Calculate user's progress on a learning path"""
-    # Get all items for this path
-    items_result = await db.execute(
-        select(LearningPathItem)
+    """Calculate user's progress on a learning path - optimized single query"""
+    # Use a single query with conditional aggregation
+    result = await db.execute(
+        select(
+            func.count(LearningPathItem.id).label('total'),
+            func.count(UserPathItemProgress.id).filter(
+                UserPathItemProgress.status == ProgressStatus.COMPLETED
+            ).label('completed')
+        )
+        .select_from(LearningPathItem)
+        .outerjoin(
+            UserPathItemProgress,
+            and_(
+                UserPathItemProgress.path_item_id == LearningPathItem.id,
+                UserPathItemProgress.user_id == user_id
+            )
+        )
         .where(LearningPathItem.learning_path_id == learning_path_id)
         .where(LearningPathItem.is_required == True)
     )
-    required_items = items_result.scalars().all()
 
-    if not required_items:
+    row = result.one()
+    if row.total == 0:
         return 0.0
 
-    # Get user's progress on these items
-    progress_result = await db.execute(
-        select(UserPathItemProgress)
-        .where(UserPathItemProgress.user_id == user_id)
-        .where(UserPathItemProgress.path_item_id.in_([item.id for item in required_items]))
-        .where(UserPathItemProgress.status == ProgressStatus.COMPLETED)
-    )
-    completed_items = progress_result.scalars().all()
-
-    return (len(completed_items) / len(required_items)) * 100
+    return (row.completed / row.total) * 100
 
 
 # Helper function to update path progress
@@ -126,7 +130,7 @@ async def get_learning_paths(
     skip: int = 0,
     limit: int = 100,
 ):
-    """Get all active learning paths"""
+    """Get all active learning paths - OPTIMIZED"""
     query = select(LearningPath).where(LearningPath.is_active == True)
 
     if difficulty:
@@ -140,15 +144,26 @@ async def get_learning_paths(
     result = await db.execute(query)
     paths = result.scalars().all()
 
-    # Load tags for each path
+    if not paths:
+        return []
+
+    # OPTIMIZATION: Fetch all tags in a single query
+    path_ids = [p.id for p in paths]
+    tags_result = await db.execute(
+        select(LearningPathTag.learning_path_id, LearningPathTag.tag)
+        .where(LearningPathTag.learning_path_id.in_(path_ids))
+    )
+
+    # Build tags map
+    tags_map: Dict[int, List[str]] = {}
+    for path_id, tag in tags_result.all():
+        if path_id not in tags_map:
+            tags_map[path_id] = []
+        tags_map[path_id].append(tag)
+
+    # Build response
     response = []
     for path in paths:
-        tags_result = await db.execute(
-            select(LearningPathTag.tag)
-            .where(LearningPathTag.learning_path_id == path.id)
-        )
-        tags = [tag[0] for tag in tags_result.all()]
-
         path_dict = {
             "id": path.id,
             "title": path.title,
@@ -161,7 +176,7 @@ async def get_learning_paths(
             "created_by_id": path.created_by_id,
             "created_at": path.created_at,
             "updated_at": path.updated_at,
-            "tags": tags,
+            "tags": tags_map.get(path.id, []),
         }
         response.append(LearningPathResponse(**path_dict))
 
@@ -174,8 +189,8 @@ async def get_learning_path(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Get a specific learning path with user progress"""
-    # Get the path
+    """Get a specific learning path with user progress - OPTIMIZED"""
+    # Get the path with eager loading
     result = await db.execute(
         select(LearningPath)
         .where(LearningPath.id == path_id)
@@ -313,8 +328,7 @@ async def create_learning_path(
 
     # Get tags for response
     tags_result = await db.execute(
-        select(LearningPathTag.tag)
-        .where(LearningPathTag.learning_path_id == new_path.id)
+        select(LearningPathTag.tag).where(LearningPathTag.learning_path_id == new_path.id)
     )
     tags = [tag[0] for tag in tags_result.all()]
 
@@ -342,10 +356,10 @@ async def enroll_in_path(
 ):
     """Enroll in a learning path"""
     # Check if path exists
-    result = await db.execute(
+    path_result = await db.execute(
         select(LearningPath).where(LearningPath.id == path_id)
     )
-    path = result.scalar_one_or_none()
+    path = path_result.scalar_one_or_none()
 
     if not path:
         raise HTTPException(status_code=404, detail="Learning path not found")
@@ -359,28 +373,24 @@ async def enroll_in_path(
     existing = existing_result.scalar_one_or_none()
 
     if existing:
-        return EnrollmentResponse(
-            success=True,
-            message="Already enrolled in this path",
-            user_progress=existing,
-        )
+        raise HTTPException(status_code=400, detail="Already enrolled in this path")
 
     # Create enrollment
-    progress = UserLearningProgress(
+    enrollment = UserLearningProgress(
         user_id=current_user.id,
         learning_path_id=path_id,
         status=ProgressStatus.NOT_STARTED,
         progress_percentage=0.0,
     )
 
-    db.add(progress)
+    db.add(enrollment)
     await db.commit()
-    await db.refresh(progress)
+    await db.refresh(enrollment)
 
     return EnrollmentResponse(
-        success=True,
         message="Successfully enrolled in learning path",
-        user_progress=progress,
+        learning_path_id=path_id,
+        user_progress=enrollment,
     )
 
 
@@ -442,7 +452,7 @@ async def get_recommendations(
     current_user: User = Depends(get_current_user),
     limit: int = 10,
 ):
-    """Get personalized learning path recommendations"""
+    """Get personalized learning path recommendations - HEAVILY OPTIMIZED"""
 
     # Get user's progress on all paths
     user_progress_result = await db.execute(
@@ -479,7 +489,7 @@ async def get_recommendations(
         elif difficulty_counts.get(DifficultyLevel.INTERMEDIATE, 0) > 0:
             user_difficulty = DifficultyLevel.INTERMEDIATE
 
-    # Get all available paths (not enrolled or in progress)
+    # Get all available paths (not completed)
     available_paths_result = await db.execute(
         select(LearningPath)
         .where(LearningPath.is_active == True)
@@ -487,18 +497,47 @@ async def get_recommendations(
     )
     available_paths = available_paths_result.scalars().all()
 
+    if not available_paths:
+        return RecommendationsResponse(
+            recommendations=[],
+            total=0,
+            user_completed_paths=len(completed_path_ids),
+            user_in_progress_paths=len(in_progress_path_ids),
+        )
+
+    # OPTIMIZATION 1: Fetch all tags in a single query
+    path_ids = [p.id for p in available_paths]
+    all_tags_result = await db.execute(
+        select(LearningPathTag.learning_path_id, LearningPathTag.tag)
+        .where(LearningPathTag.learning_path_id.in_(path_ids))
+    )
+
+    # Build tags map
+    path_tags_map: Dict[int, List[str]] = {}
+    for path_id, tag in all_tags_result.all():
+        if path_id not in path_tags_map:
+            path_tags_map[path_id] = []
+        path_tags_map[path_id].append(tag)
+
+    # OPTIMIZATION 2: Fetch all enrollment counts in a single query
+    enrollment_counts_result = await db.execute(
+        select(
+            UserLearningProgress.learning_path_id,
+            func.count(UserLearningProgress.id).label('count')
+        )
+        .where(UserLearningProgress.learning_path_id.in_(path_ids))
+        .group_by(UserLearningProgress.learning_path_id)
+    )
+    enrollment_counts_map = {row.learning_path_id: row.count for row in enrollment_counts_result.all()}
+
     # Score and rank paths
     recommendations = []
     for path in available_paths:
         score = 0.0
         reasons = []
 
-        # Get path tags
-        path_tags_result = await db.execute(
-            select(LearningPathTag.tag)
-            .where(LearningPathTag.learning_path_id == path.id)
-        )
-        path_tags = [tag[0] for tag in path_tags_result.all()]
+        # Get path tags from map
+        path_tags = path_tags_map.get(path.id, [])
 
         # Score based on matching tags
         matching_tags = set(path_tags) & set(completed_tags)
@@ -525,12 +564,8 @@ async def get_recommendations(
             score += 40
             reasons.append("진행 중인 경로")
 
-        # Get enrollment count for popularity
-        enrollment_result = await db.execute(
-            select(func.count(UserLearningProgress.id))
-            .where(UserLearningProgress.learning_path_id == path.id)
-        )
-        enrollment_count = enrollment_result.scalar() or 0
+        # Get enrollment count from map
+        enrollment_count = enrollment_counts_map.get(path.id, 0)
 
         if enrollment_count > 10:
             score += 10
@@ -580,20 +615,26 @@ async def get_my_learning_stats(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Get current user's learning statistics"""
+    """Get current user's learning statistics - OPTIMIZED"""
 
-    # Get all user progress
-    progress_result = await db.execute(
-        select(UserLearningProgress)
+    # Use a single query with aggregation
+    stats_result = await db.execute(
+        select(
+            func.count(UserLearningProgress.id).label('total_enrolled'),
+            func.count(UserLearningProgress.id).filter(
+                UserLearningProgress.status == ProgressStatus.COMPLETED
+            ).label('completed'),
+            func.count(UserLearningProgress.id).filter(
+                UserLearningProgress.status == ProgressStatus.IN_PROGRESS
+            ).label('in_progress'),
+            func.avg(UserLearningProgress.progress_percentage).label('avg_progress')
+        )
         .where(UserLearningProgress.user_id == current_user.id)
     )
-    all_progress = progress_result.scalars().all()
 
-    total_enrolled = len(all_progress)
-    total_completed = len([p for p in all_progress if p.status == ProgressStatus.COMPLETED])
-    total_in_progress = len([p for p in all_progress if p.status == ProgressStatus.IN_PROGRESS])
+    stats = stats_result.one()
 
-    # Get completed items count
+    # Get total items completed
     items_result = await db.execute(
         select(func.count(UserPathItemProgress.id))
         .where(UserPathItemProgress.user_id == current_user.id)
@@ -601,43 +642,20 @@ async def get_my_learning_stats(
     )
     total_items_completed = items_result.scalar() or 0
 
-    # Calculate total learning hours (from completed paths)
-    completed_path_ids = [p.learning_path_id for p in all_progress if p.status == ProgressStatus.COMPLETED]
-    total_hours = 0.0
-    if completed_path_ids:
-        hours_result = await db.execute(
-            select(func.sum(LearningPath.estimated_hours))
-            .where(LearningPath.id.in_(completed_path_ids))
-        )
-        total_hours = hours_result.scalar() or 0.0
-
-    completion_rate = (total_completed / total_enrolled * 100) if total_enrolled > 0 else 0.0
-
-    # Get recent activity
-    recent_result = await db.execute(
-        select(UserLearningProgress, LearningPath.title)
-        .join(LearningPath, UserLearningProgress.learning_path_id == LearningPath.id)
-        .where(UserLearningProgress.user_id == current_user.id)
-        .order_by(UserLearningProgress.last_accessed_at.desc())
-        .limit(5)
+    # Get total learning hours
+    hours_result = await db.execute(
+        select(func.sum(LearningPathItem.estimated_hours))
+        .join(UserPathItemProgress, UserPathItemProgress.path_item_id == LearningPathItem.id)
+        .where(UserPathItemProgress.user_id == current_user.id)
+        .where(UserPathItemProgress.status == ProgressStatus.COMPLETED)
     )
-    recent_activity = [
-        {
-            "path_id": p.learning_path_id,
-            "path_title": title,
-            "status": p.status,
-            "progress": p.progress_percentage,
-            "last_accessed": p.last_accessed_at.isoformat() if p.last_accessed_at else None,
-        }
-        for p, title in recent_result.all()
-    ]
+    total_learning_hours = hours_result.scalar() or 0
 
     return UserLearningStats(
-        total_paths_enrolled=total_enrolled,
-        total_paths_completed=total_completed,
-        total_paths_in_progress=total_in_progress,
+        total_enrolled_paths=stats.total_enrolled or 0,
+        completed_paths=stats.completed or 0,
+        in_progress_paths=stats.in_progress or 0,
         total_items_completed=total_items_completed,
-        total_learning_hours=total_hours,
-        completion_rate=completion_rate,
-        recent_activity=recent_activity,
+        total_learning_hours=int(total_learning_hours),
+        average_progress=float(stats.avg_progress or 0),
     )

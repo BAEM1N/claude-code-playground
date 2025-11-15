@@ -4,6 +4,7 @@ Virtual Classroom API endpoints
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, or_
+from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from datetime import datetime
 import os
@@ -124,42 +125,37 @@ async def get_classroom(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Get classroom details with participants"""
+    """Get classroom details with participants - OPTIMIZED"""
+    # OPTIMIZATION: Use eager loading with selectinload
     result = await db.execute(
-        select(VirtualClassroom).where(VirtualClassroom.id == classroom_id)
+        select(VirtualClassroom)
+        .where(VirtualClassroom.id == classroom_id)
+        .options(
+            selectinload(VirtualClassroom.participants),
+            selectinload(VirtualClassroom.recordings)
+        )
     )
     classroom = result.scalar_one_or_none()
 
     if not classroom:
         raise HTTPException(status_code=404, detail="Classroom not found")
 
-    # Get participants
-    participants_result = await db.execute(
-        select(ClassroomParticipant)
-        .where(ClassroomParticipant.classroom_id == classroom_id)
-        .order_by(ClassroomParticipant.joined_at.desc())
-    )
-    participants = participants_result.scalars().all()
+    # Filter recordings to only available ones
+    available_recordings = [r for r in classroom.recordings if r.is_available]
 
-    # Get recordings
-    recordings_result = await db.execute(
-        select(ClassroomRecording)
-        .where(ClassroomRecording.classroom_id == classroom_id)
-        .where(ClassroomRecording.is_available == True)
-        .order_by(ClassroomRecording.created_at.desc())
-    )
-    recordings = recordings_result.scalars().all()
+    # Sort participants by joined_at
+    sorted_participants = sorted(classroom.participants, key=lambda p: p.joined_at, reverse=True)
 
     # Count active participants
-    active_count = sum(1 for p in participants if p.is_online)
+    active_count = sum(1 for p in sorted_participants if p.is_online)
 
     return {
         **classroom.__dict__,
         "participants": [
-            {**p.__dict__, "user": None} for p in participants
+            {**p.__dict__, "user": None} for p in sorted_participants
         ],
         "active_participants_count": active_count,
-        "recordings": recordings
+        "recordings": available_recordings
     }
 
 

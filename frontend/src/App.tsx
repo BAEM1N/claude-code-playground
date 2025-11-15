@@ -44,6 +44,10 @@ import VirtualClassroomPage from './pages/VirtualClassroomPage';
 // Forum Pages
 import ForumPage from './pages/ForumPage';
 
+// Competition Pages
+import CompetitionsPage from './pages/CompetitionsPage';
+import CompetitionDetailPage from './pages/CompetitionDetailPage';
+
 // Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -268,6 +272,24 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <ForumPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Competitions */}
+      <Route
+        path="/competitions"
+        element={
+          <ProtectedRoute>
+            <CompetitionsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/competitions/:competitionId"
+        element={
+          <ProtectedRoute>
+            <CompetitionDetailPage />
           </ProtectedRoute>
         }
       />

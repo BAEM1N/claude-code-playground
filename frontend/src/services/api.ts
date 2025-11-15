@@ -543,4 +543,72 @@ export const forumAPI = {
     api.get('/forum/stats/my-stats'),
 };
 
+// Competition API
+export const competitionAPI = {
+  // Competition management
+  getCompetitions: (params?: any): Promise<AxiosResponse<any>> =>
+    api.get('/competition/competitions', { params }),
+  getCompetition: (competitionId: number): Promise<AxiosResponse<any>> =>
+    api.get(`/competition/competitions/${competitionId}`),
+  createCompetition: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/competition/competitions', data),
+  updateCompetition: (competitionId: number, data: any): Promise<AxiosResponse<any>> =>
+    api.put(`/competition/competitions/${competitionId}`, data),
+  deleteCompetition: (competitionId: number): Promise<AxiosResponse<void>> =>
+    api.delete(`/competition/competitions/${competitionId}`),
+
+  // Participation
+  joinCompetition: (competitionId: number, teamId?: number): Promise<AxiosResponse<any>> =>
+    api.post(`/competition/competitions/${competitionId}/join`, teamId ? { team_id: teamId } : {}),
+  leaveCompetition: (competitionId: number): Promise<AxiosResponse<void>> =>
+    api.delete(`/competition/competitions/${competitionId}/leave`),
+
+  // Team management
+  createTeam: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/competition/teams', data),
+  getTeam: (teamId: number): Promise<AxiosResponse<any>> =>
+    api.get(`/competition/teams/${teamId}`),
+  updateTeam: (teamId: number, data: any): Promise<AxiosResponse<any>> =>
+    api.put(`/competition/teams/${teamId}`, data),
+  deleteTeam: (teamId: number): Promise<AxiosResponse<void>> =>
+    api.delete(`/competition/teams/${teamId}`),
+  getTeamMembers: (teamId: number): Promise<AxiosResponse<any>> =>
+    api.get(`/competition/teams/${teamId}/members`),
+  inviteMember: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/competition/teams/invite', data),
+  respondToInvite: (inviteId: number, accept: boolean): Promise<AxiosResponse<any>> =>
+    api.post(`/competition/teams/invites/${inviteId}/respond`, { accept }),
+
+  // Submissions
+  submitSolution: (competitionId: number, file: File): Promise<AxiosResponse<any>> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post(`/competition/competitions/${competitionId}/submit`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  getMySubmissions: (competitionId: number, params?: any): Promise<AxiosResponse<any>> =>
+    api.get(`/competition/competitions/${competitionId}/my-submissions`, { params }),
+  getSubmission: (submissionId: number): Promise<AxiosResponse<any>> =>
+    api.get(`/competition/submissions/${submissionId}`),
+
+  // Leaderboard
+  getLeaderboard: (competitionId: number, leaderboardType: 'public' | 'private' = 'public'): Promise<AxiosResponse<any>> =>
+    api.get(`/competition/competitions/${competitionId}/leaderboard`, { params: { leaderboard_type: leaderboardType } }),
+
+  // Data files
+  downloadTrainData: (competitionId: number): Promise<AxiosResponse<Blob>> =>
+    api.get(`/competition/competitions/${competitionId}/data/train`, { responseType: 'blob' }),
+  downloadTestData: (competitionId: number): Promise<AxiosResponse<Blob>> =>
+    api.get(`/competition/competitions/${competitionId}/data/test`, { responseType: 'blob' }),
+  downloadSampleSubmission: (competitionId: number): Promise<AxiosResponse<Blob>> =>
+    api.get(`/competition/competitions/${competitionId}/data/sample-submission`, { responseType: 'blob' }),
+
+  // Statistics
+  getStatistics: (): Promise<AxiosResponse<any>> =>
+    api.get('/competition/stats/overview'),
+  getCompetitionStats: (competitionId: number): Promise<AxiosResponse<any>> =>
+    api.get(`/competition/competitions/${competitionId}/stats`),
+};
+
 export default api;

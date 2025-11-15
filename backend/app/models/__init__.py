@@ -32,6 +32,18 @@ from .ai_assistant import (
     AIProvider,
     AITaskType,
 )
+from .gamification import (
+    UserGameProfile,
+    BadgeDefinition,
+    UserBadge,
+    XPTransaction,
+    DailyQuestDefinition,
+    UserDailyQuest,
+    Leaderboard,
+    BadgeType,
+    BadgeCategory,
+    XPActivityType,
+)
 
 __all__ = [
     "UserProfile",
@@ -83,4 +95,14 @@ __all__ = [
     "AIUsageLog",
     "AIProvider",
     "AITaskType",
+    "UserGameProfile",
+    "BadgeDefinition",
+    "UserBadge",
+    "XPTransaction",
+    "DailyQuestDefinition",
+    "UserDailyQuest",
+    "Leaderboard",
+    "BadgeType",
+    "BadgeCategory",
+    "XPActivityType",
 ]

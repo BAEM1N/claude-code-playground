@@ -626,4 +626,45 @@ export const dashboardAPI = {
     api.get('/dashboard/stats/quizzes'),
 };
 
+// Gamification API
+export const gamificationAPI = {
+  // Profile
+  getProfile: (): Promise<AxiosResponse<any>> =>
+    api.get('/gamification/profile'),
+  updateProfile: (data: any): Promise<AxiosResponse<any>> =>
+    api.patch('/gamification/profile', data),
+
+  // Stats
+  getStats: (): Promise<AxiosResponse<any>> =>
+    api.get('/gamification/stats'),
+
+  // XP
+  awardXP: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/gamification/award-xp', data),
+
+  // Badges
+  getAllBadges: (params?: any): Promise<AxiosResponse<any>> =>
+    api.get('/gamification/badges', { params }),
+  getMyBadges: (): Promise<AxiosResponse<any>> =>
+    api.get('/gamification/my-badges'),
+  updateBadge: (badgeId: string, data: any): Promise<AxiosResponse<any>> =>
+    api.patch(`/gamification/badges/${badgeId}`, data),
+
+  // Leaderboard
+  getLeaderboard: (params?: any): Promise<AxiosResponse<any>> =>
+    api.get('/gamification/leaderboard', { params }),
+
+  // Daily Quests
+  getDailyQuests: (): Promise<AxiosResponse<any>> =>
+    api.get('/gamification/daily-quests'),
+
+  // Admin - Badge definitions
+  createBadge: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/gamification/admin/badges', data),
+  getBadgeDefinition: (badgeId: string): Promise<AxiosResponse<any>> =>
+    api.get(`/gamification/admin/badges/${badgeId}`),
+  updateBadgeDefinition: (badgeId: string, data: any): Promise<AxiosResponse<any>> =>
+    api.patch(`/gamification/admin/badges/${badgeId}`, data),
+};
+
 export default api;

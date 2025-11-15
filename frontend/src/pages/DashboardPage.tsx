@@ -15,6 +15,7 @@ import { useLearningPathRecommendations } from '../hooks/useLearningPaths';
 import { dashboardAPI } from '../services/api';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorAlert from '../components/common/ErrorAlert';
+import GamificationWidget from '../components/gamification/GamificationWidget';
 
 const DashboardPage: React.FC = () => {
   const { user, profile } = useAuth();

@@ -51,6 +51,10 @@ import ForumPage from './pages/ForumPage';
 import CompetitionsPage from './pages/CompetitionsPage';
 import CompetitionDetailPage from './pages/CompetitionDetailPage';
 
+// Gamification Pages
+import BadgesPage from './pages/BadgesPage';
+import LeaderboardPage from './pages/LeaderboardPage';
+
 // Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -303,6 +307,24 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <CompetitionDetailPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Gamification */}
+      <Route
+        path="/gamification/badges"
+        element={
+          <ProtectedRoute>
+            <BadgesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/gamification/leaderboard"
+        element={
+          <ProtectedRoute>
+            <LeaderboardPage />
           </ProtectedRoute>
         }
       />

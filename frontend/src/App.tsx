@@ -38,6 +38,9 @@ import LearningPathDetailPage from './pages/LearningPathDetailPage';
 // Coding Environment Pages
 import CodingPlaygroundPage from './pages/CodingPlaygroundPage';
 
+// Virtual Classroom Pages
+import VirtualClassroomPage from './pages/VirtualClassroomPage';
+
 // Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -242,6 +245,16 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <CodingPlaygroundPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Virtual Classroom */}
+      <Route
+        path="/virtual-classroom/:classroomId"
+        element={
+          <ProtectedRoute>
+            <VirtualClassroomPage />
           </ProtectedRoute>
         }
       />

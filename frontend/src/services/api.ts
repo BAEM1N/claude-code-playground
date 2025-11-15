@@ -449,4 +449,51 @@ export const codingAPI = {
     api.post(`/coding/sessions/${sessionId}/end`),
 };
 
+// Virtual Classroom API
+export const virtualClassroomAPI = {
+  // Classroom management
+  createClassroom: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/virtual-classroom/classrooms', data),
+  getClassrooms: (params?: any): Promise<AxiosResponse<any>> =>
+    api.get('/virtual-classroom/classrooms', { params }),
+  getClassroom: (classroomId: number): Promise<AxiosResponse<any>> =>
+    api.get(`/virtual-classroom/classrooms/${classroomId}`),
+  updateClassroom: (classroomId: number, data: any): Promise<AxiosResponse<any>> =>
+    api.put(`/virtual-classroom/classrooms/${classroomId}`, data),
+  deleteClassroom: (classroomId: number): Promise<AxiosResponse<void>> =>
+    api.delete(`/virtual-classroom/classrooms/${classroomId}`),
+
+  // Classroom control
+  startClassroom: (classroomId: number): Promise<AxiosResponse<any>> =>
+    api.post(`/virtual-classroom/classrooms/${classroomId}/start`),
+  endClassroom: (classroomId: number): Promise<AxiosResponse<any>> =>
+    api.post(`/virtual-classroom/classrooms/${classroomId}/end`),
+
+  // Whiteboard
+  getWhiteboardStrokes: (classroomId: number): Promise<AxiosResponse<any>> =>
+    api.get(`/virtual-classroom/classrooms/${classroomId}/whiteboard`),
+
+  // Files
+  uploadFile: (classroomId: number, file: File, description?: string): Promise<AxiosResponse<any>> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (description) formData.append('description', description);
+    return api.post(`/virtual-classroom/classrooms/${classroomId}/files`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  getFiles: (classroomId: number): Promise<AxiosResponse<any>> =>
+    api.get(`/virtual-classroom/classrooms/${classroomId}/files`),
+
+  // Recordings
+  getRecordings: (classroomId: number): Promise<AxiosResponse<any>> =>
+    api.get(`/virtual-classroom/classrooms/${classroomId}/recordings`),
+
+  // Statistics
+  getStatistics: (): Promise<AxiosResponse<any>> =>
+    api.get('/virtual-classroom/classrooms/stats/overview'),
+  getMyStats: (): Promise<AxiosResponse<any>> =>
+    api.get('/virtual-classroom/classrooms/stats/my-stats'),
+};
+
 export default api;

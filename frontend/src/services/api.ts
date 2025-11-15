@@ -611,4 +611,19 @@ export const competitionAPI = {
     api.get(`/competition/competitions/${competitionId}/stats`),
 };
 
+// Dashboard API
+export const dashboardAPI = {
+  // Overview statistics
+  getOverviewStats: (): Promise<AxiosResponse<any>> =>
+    api.get('/dashboard/stats/overview'),
+
+  // Assignment statistics
+  getAssignmentStats: (): Promise<AxiosResponse<any>> =>
+    api.get('/dashboard/stats/assignments'),
+
+  // Quiz statistics
+  getQuizStats: (): Promise<AxiosResponse<any>> =>
+    api.get('/dashboard/stats/quizzes'),
+};
+
 export default api;

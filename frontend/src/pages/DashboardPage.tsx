@@ -6,12 +6,13 @@
 // @ts-nocheck
  */
 // @ts-nocheck
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useCourses } from '../hooks/useCourse';
 import { useMyAIUsageStats } from '../hooks/useAI';
 import { useLearningPathRecommendations } from '../hooks/useLearningPaths';
+import { dashboardAPI } from '../services/api';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorAlert from '../components/common/ErrorAlert';
 
@@ -20,6 +21,25 @@ const DashboardPage: React.FC = () => {
   const { data: courses, isLoading, error } = useCourses();
   const { data: aiStats } = useMyAIUsageStats(30);
   const { data: recommendations } = useLearningPathRecommendations(3);
+
+  const [dashboardStats, setDashboardStats] = useState<any>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  useEffect(() => {
+    loadDashboardStats();
+  }, []);
+
+  const loadDashboardStats = async () => {
+    try {
+      setStatsLoading(true);
+      const { data } = await dashboardAPI.getOverviewStats();
+      setDashboardStats(data);
+    } catch (error) {
+      console.error('Failed to load dashboard stats:', error);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -156,7 +176,9 @@ const DashboardPage: React.FC = () => {
                 <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">완료한 과제</dt>
-                    <dd className="text-3xl font-semibold text-gray-900">-</dd>
+                    <dd className="text-3xl font-semibold text-gray-900">
+                      {statsLoading ? '-' : (dashboardStats?.completed_assignments || 0)}
+                    </dd>
                   </dl>
                 </div>
               </div>
@@ -184,7 +206,9 @@ const DashboardPage: React.FC = () => {
                 <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">진행 중인 퀴즈</dt>
-                    <dd className="text-3xl font-semibold text-gray-900">-</dd>
+                    <dd className="text-3xl font-semibold text-gray-900">
+                      {statsLoading ? '-' : (dashboardStats?.ongoing_quizzes || 0)}
+                    </dd>
                   </dl>
                 </div>
               </div>
@@ -388,7 +412,27 @@ const DashboardPage: React.FC = () => {
 
           <div className="bg-white shadow rounded-lg p-6">
             <h3 className="text-lg font-medium text-gray-900 mb-4">최근 활동</h3>
-            <p className="text-sm text-gray-500">활동 내역이 없습니다.</p>
+            {statsLoading ? (
+              <div className="flex justify-center py-4">
+                <LoadingSpinner size="sm" />
+              </div>
+            ) : dashboardStats?.recent_activities && dashboardStats.recent_activities.length > 0 ? (
+              <div className="space-y-3">
+                {dashboardStats.recent_activities.slice(0, 5).map((activity: any) => (
+                  <div key={activity.id} className="flex items-start text-sm">
+                    <div className="flex-shrink-0 w-2 h-2 mt-2 bg-blue-500 rounded-full"></div>
+                    <div className="ml-3 flex-1">
+                      <p className="text-gray-900">{activity.description}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {new Date(activity.timestamp).toLocaleString('ko-KR')}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">활동 내역이 없습니다.</p>
+            )}
           </div>
         </div>
       </div>

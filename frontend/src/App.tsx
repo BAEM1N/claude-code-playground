@@ -35,6 +35,9 @@ import AIConversationsPage from './pages/AIConversationsPage';
 import LearningPathsPage from './pages/LearningPathsPage';
 import LearningPathDetailPage from './pages/LearningPathDetailPage';
 
+// Learning Module Pages
+import LearningModuleView from './components/learning/LearningModuleView';
+
 // Coding Environment Pages
 import CodingPlaygroundPage from './pages/CodingPlaygroundPage';
 
@@ -242,6 +245,16 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <LearningPathDetailPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Learning Modules - Video/Markdown/Notebook Learning */}
+      <Route
+        path="/learning/modules/:moduleId/topics/:topicId?"
+        element={
+          <ProtectedRoute>
+            <LearningModuleView />
           </ProtectedRoute>
         }
       />

@@ -626,6 +626,65 @@ export const dashboardAPI = {
     api.get('/dashboard/stats/quizzes'),
 };
 
+// Team Projects API
+export const teamProjectsAPI = {
+  // Projects
+  getProjects: (params?: { course_id?: string; status?: string }): Promise<AxiosResponse<any>> =>
+    api.get('/team-projects/projects', { params }),
+  getProject: (projectId: string): Promise<AxiosResponse<any>> =>
+    api.get(`/team-projects/projects/${projectId}`),
+  createProject: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/team-projects/projects', data),
+  updateProject: (projectId: string, data: any): Promise<AxiosResponse<any>> =>
+    api.put(`/team-projects/projects/${projectId}`, data),
+  deleteProject: (projectId: string): Promise<AxiosResponse<void>> =>
+    api.delete(`/team-projects/projects/${projectId}`),
+
+  // Team Members
+  getProjectMembers: (projectId: string): Promise<AxiosResponse<any>> =>
+    api.get(`/team-projects/projects/${projectId}/members`),
+  addProjectMember: (projectId: string, data: { user_id: string; role?: string }): Promise<AxiosResponse<any>> =>
+    api.post(`/team-projects/projects/${projectId}/members`, data),
+  removeProjectMember: (projectId: string, userId: string): Promise<AxiosResponse<void>> =>
+    api.delete(`/team-projects/projects/${projectId}/members/${userId}`),
+  updateMemberRole: (projectId: string, userId: string, role: string): Promise<AxiosResponse<any>> =>
+    api.patch(`/team-projects/projects/${projectId}/members/${userId}`, { role }),
+
+  // Tasks
+  getTasks: (projectId: string, params?: any): Promise<AxiosResponse<any>> =>
+    api.get(`/team-projects/projects/${projectId}/tasks`, { params }),
+  getTask: (taskId: string): Promise<AxiosResponse<any>> =>
+    api.get(`/team-projects/tasks/${taskId}`),
+  createTask: (projectId: string, data: any): Promise<AxiosResponse<any>> =>
+    api.post(`/team-projects/projects/${projectId}/tasks`, data),
+  updateTask: (taskId: string, data: any): Promise<AxiosResponse<any>> =>
+    api.put(`/team-projects/tasks/${taskId}`, data),
+  deleteTask: (taskId: string): Promise<AxiosResponse<void>> =>
+    api.delete(`/team-projects/tasks/${taskId}`),
+  assignTask: (taskId: string, userId: string): Promise<AxiosResponse<any>> =>
+    api.post(`/team-projects/tasks/${taskId}/assign`, { user_id: userId }),
+
+  // Milestones
+  getMilestones: (projectId: string): Promise<AxiosResponse<any>> =>
+    api.get(`/team-projects/projects/${projectId}/milestones`),
+  createMilestone: (projectId: string, data: any): Promise<AxiosResponse<any>> =>
+    api.post(`/team-projects/projects/${projectId}/milestones`, data),
+  updateMilestone: (milestoneId: string, data: any): Promise<AxiosResponse<any>> =>
+    api.put(`/team-projects/milestones/${milestoneId}`, data),
+  deleteMilestone: (milestoneId: string): Promise<AxiosResponse<void>> =>
+    api.delete(`/team-projects/milestones/${milestoneId}`),
+
+  // Comments
+  getTaskComments: (taskId: string): Promise<AxiosResponse<any>> =>
+    api.get(`/team-projects/tasks/${taskId}/comments`),
+  addTaskComment: (taskId: string, content: string): Promise<AxiosResponse<any>> =>
+    api.post(`/team-projects/tasks/${taskId}/comments`, { content }),
+
+  // Statistics
+  getProjectStats: (projectId: string): Promise<AxiosResponse<any>> =>
+    api.get(`/team-projects/projects/${projectId}/stats`),
+};
+
 // Gamification API
 export const gamificationAPI = {
   // Profile

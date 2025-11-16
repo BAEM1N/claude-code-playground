@@ -59,6 +59,11 @@ import ProfileCustomization from './components/gamification/ProfileCustomization
 import ChallengesList from './components/gamification/ChallengesList';
 import FriendsSystem from './components/gamification/FriendsSystem';
 
+// Project Management Pages
+import ProjectList from './components/projects/ProjectList';
+import ProjectDetail from './components/projects/ProjectDetail';
+import ProjectForm from './components/projects/ProjectForm';
+
 // Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -361,6 +366,32 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <TeamsPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Team Projects */}
+      <Route
+        path="/projects"
+        element={
+          <ProtectedRoute>
+            <ProjectList />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/projects/new"
+        element={
+          <ProtectedRoute>
+            <ProjectForm />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/projects/:projectId"
+        element={
+          <ProtectedRoute>
+            <ProjectDetail />
           </ProtectedRoute>
         }
       />

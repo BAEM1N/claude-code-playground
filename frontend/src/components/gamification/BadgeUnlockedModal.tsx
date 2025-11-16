@@ -28,22 +28,22 @@ const BadgeUnlockedModal: React.FC<BadgeUnlockedModalProps> = ({
   onClose,
 }) => {
   useEffect(() => {
-    if (isOpen && badge) {
-      // Trigger confetti animation
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: getBadgeColors(badge.badge_type),
-      });
+    if (!isOpen || !badge) return undefined;
 
-      // Auto close after 5 seconds
-      const timeout = setTimeout(() => {
-        onClose();
-      }, 5000);
+    // Trigger confetti animation
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: getBadgeColors(badge.badge_type),
+    });
 
-      return () => clearTimeout(timeout);
-    }
+    // Auto close after 5 seconds
+    const timeout = setTimeout(() => {
+      onClose();
+    }, 5000);
+
+    return () => clearTimeout(timeout);
   }, [isOpen, badge, onClose]);
 
   const getBadgeColors = (badgeType: string): string[] => {

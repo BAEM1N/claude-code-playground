@@ -20,7 +20,7 @@ interface WhiteboardProps {
 }
 
 const Whiteboard: React.FC<WhiteboardProps> = ({
-  classroomId,
+  classroomId: _classroomId,
   onStroke,
   onClear,
   readOnly = false,
@@ -36,10 +36,10 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) return undefined;
 
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) return undefined;
 
     // Set canvas size
     const resizeCanvas = () => {
@@ -225,18 +225,20 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
   };
 
   // Public method to add external stroke (from WebSocket)
+  // Note: This would be exposed via useImperativeHandle if component used forwardRef
+  /*
   const addStroke = (stroke: Stroke) => {
     setStrokes((prev) => [...prev, stroke]);
   };
 
-  // Expose addStroke method
   React.useImperativeHandle(
-    React.useRef(),
+    ref,
     () => ({
       addStroke,
       clearCanvas: handleClear,
     })
   );
+  */
 
   return (
     <div className="flex flex-col h-full bg-white rounded-lg overflow-hidden">

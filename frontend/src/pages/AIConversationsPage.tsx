@@ -18,7 +18,7 @@ const AIConversationsPage: React.FC = () => {
 
   const handleDelete = async (conversationId: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm('이 대화를 삭제하시겠습니까?')) return;
+    if (!window.confirm('이 대화를 삭제하시겠습니까?')) return;
 
     try {
       await deleteMutation.mutateAsync(conversationId);

@@ -107,7 +107,7 @@ const TeamChatPanel: React.FC<TeamChatPanelProps> = ({
     }
   };
 
-  const handleSendMessage = async (content: string, metadata?: any) => {
+  const handleSendMessage = async (content: string, _metadata?: any) => {
     try {
       const params = new URLSearchParams({
         content,
@@ -169,7 +169,7 @@ const TeamChatPanel: React.FC<TeamChatPanelProps> = ({
   };
 
   const handleDeleteMessage = async (messageId: string) => {
-    if (!confirm('Are you sure you want to delete this message?')) return;
+    if (!window.confirm('Are you sure you want to delete this message?')) return;
 
     try {
       const response = await fetch(`/api/v1/teams/${teamId}/messages/${messageId}`, {

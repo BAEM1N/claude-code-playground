@@ -55,6 +55,9 @@ import CompetitionDetailPage from './pages/CompetitionDetailPage';
 import BadgesPage from './pages/BadgesPage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import TeamsPage from './pages/TeamsPage';
+import ProfileCustomization from './components/gamification/ProfileCustomization';
+import ChallengesList from './components/gamification/ChallengesList';
+import FriendsSystem from './components/gamification/FriendsSystem';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -326,6 +329,30 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <LeaderboardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/gamification/profile"
+        element={
+          <ProtectedRoute>
+            <ProfileCustomization />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/gamification/challenges"
+        element={
+          <ProtectedRoute>
+            <ChallengesList />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/gamification/friends"
+        element={
+          <ProtectedRoute>
+            <FriendsSystem />
           </ProtectedRoute>
         }
       />

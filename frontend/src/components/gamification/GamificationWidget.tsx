@@ -187,13 +187,34 @@ const GamificationWidget: React.FC = () => {
       )}
 
       {/* Quick Links */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <Link
+          to="/gamification/profile"
+          className="bg-white border-2 border-gray-200 hover:border-indigo-500 rounded-lg p-4 text-center transition-all group"
+        >
+          <div className="text-3xl mb-2">👤</div>
+          <p className="font-medium text-gray-900 group-hover:text-indigo-600">프로필 꾸미기</p>
+        </Link>
         <Link
           to="/gamification/badges"
           className="bg-white border-2 border-gray-200 hover:border-indigo-500 rounded-lg p-4 text-center transition-all group"
         >
           <div className="text-3xl mb-2">🏅</div>
           <p className="font-medium text-gray-900 group-hover:text-indigo-600">내 배지</p>
+        </Link>
+        <Link
+          to="/gamification/challenges"
+          className="bg-white border-2 border-gray-200 hover:border-indigo-500 rounded-lg p-4 text-center transition-all group"
+        >
+          <div className="text-3xl mb-2">🎯</div>
+          <p className="font-medium text-gray-900 group-hover:text-indigo-600">챌린지</p>
+        </Link>
+        <Link
+          to="/gamification/friends"
+          className="bg-white border-2 border-gray-200 hover:border-indigo-500 rounded-lg p-4 text-center transition-all group"
+        >
+          <div className="text-3xl mb-2">👥</div>
+          <p className="font-medium text-gray-900 group-hover:text-indigo-600">친구</p>
         </Link>
         <Link
           to="/gamification/leaderboard"

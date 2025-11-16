@@ -94,7 +94,7 @@ export const useEnrollInPath = (): UseMutationResult<
       return data;
     },
     {
-      onSuccess: (data, pathId) => {
+      onSuccess: (_data, pathId) => {
         // Invalidate path detail to refresh progress
         queryClient.invalidateQueries(['learningPath', pathId]);
         queryClient.invalidateQueries(['learningPathRecommendations']);
@@ -120,7 +120,7 @@ export const useUpdateItemProgress = (): UseMutationResult<
       return response;
     },
     {
-      onSuccess: (data, variables) => {
+      onSuccess: (_data, variables) => {
         // Invalidate path detail to refresh progress
         if (variables.pathId) {
           queryClient.invalidateQueries(['learningPath', variables.pathId]);

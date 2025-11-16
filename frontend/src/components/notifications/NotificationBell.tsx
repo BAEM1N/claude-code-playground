@@ -13,7 +13,6 @@ interface NotificationBellProps {
 const NotificationBell: React.FC<NotificationBellProps> = ({ className = '' }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     loadUnreadCount();

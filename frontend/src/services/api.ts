@@ -649,6 +649,12 @@ export const gamificationAPI = {
     api.get('/gamification/my-badges'),
   updateBadge: (badgeId: string, data: any): Promise<AxiosResponse<any>> =>
     api.patch(`/gamification/badges/${badgeId}`, data),
+  equipBadge: (badgeId: string): Promise<AxiosResponse<any>> =>
+    api.post(`/gamification/badges/${badgeId}/equip`),
+  unequipBadge: (badgeId: string): Promise<AxiosResponse<any>> =>
+    api.post(`/gamification/badges/${badgeId}/unequip`),
+  getEquippedBadges: (): Promise<AxiosResponse<any>> =>
+    api.get('/gamification/equipped-badges'),
 
   // Leaderboard
   getLeaderboard: (params?: any): Promise<AxiosResponse<any>> =>
@@ -657,6 +663,36 @@ export const gamificationAPI = {
   // Daily Quests
   getDailyQuests: (): Promise<AxiosResponse<any>> =>
     api.get('/gamification/daily-quests'),
+
+  // Challenges
+  getChallenges: (params?: { type?: 'weekly' | 'monthly'; status?: 'active' | 'completed' | 'expired' }): Promise<AxiosResponse<any>> =>
+    api.get('/gamification/challenges', { params }),
+  getChallenge: (challengeId: string): Promise<AxiosResponse<any>> =>
+    api.get(`/gamification/challenges/${challengeId}`),
+  joinChallenge: (challengeId: string): Promise<AxiosResponse<any>> =>
+    api.post(`/gamification/challenges/${challengeId}/join`),
+  getMyChallengeProgress: (challengeId: string): Promise<AxiosResponse<any>> =>
+    api.get(`/gamification/challenges/${challengeId}/progress`),
+  claimChallengeReward: (challengeId: string): Promise<AxiosResponse<any>> =>
+    api.post(`/gamification/challenges/${challengeId}/claim-reward`),
+
+  // Friends
+  getFriends: (): Promise<AxiosResponse<any>> =>
+    api.get('/gamification/friends'),
+  sendFriendRequest: (userId: string): Promise<AxiosResponse<any>> =>
+    api.post('/gamification/friends/request', { user_id: userId }),
+  acceptFriendRequest: (requestId: string): Promise<AxiosResponse<any>> =>
+    api.post(`/gamification/friends/requests/${requestId}/accept`),
+  rejectFriendRequest: (requestId: string): Promise<AxiosResponse<any>> =>
+    api.post(`/gamification/friends/requests/${requestId}/reject`),
+  removeFriend: (friendId: string): Promise<AxiosResponse<any>> =>
+    api.delete(`/gamification/friends/${friendId}`),
+  getFriendRequests: (): Promise<AxiosResponse<any>> =>
+    api.get('/gamification/friends/requests'),
+  getFriendLeaderboard: (params?: { period?: 'weekly' | 'monthly' | 'all_time' }): Promise<AxiosResponse<any>> =>
+    api.get('/gamification/friends/leaderboard', { params }),
+  searchUsers: (query: string): Promise<AxiosResponse<any>> =>
+    api.get('/gamification/users/search', { params: { q: query } }),
 
   // Admin - Badge definitions
   createBadge: (data: any): Promise<AxiosResponse<any>> =>

@@ -104,7 +104,9 @@ async def check_and_award_badges(
     db: AsyncSession,
     profile: UserGameProfile
 ) -> List[BadgeDefinition]:
-    """배지 조건 확인 및 자동 부여"""
+    """배지 조건 확인 및 자동 부여 (Enhanced with prerequisites)"""
+    from datetime import datetime
+    from sqlalchemy import func
     awarded_badges = []
 
     # Get all active badge definitions
@@ -128,6 +130,28 @@ async def check_and_award_badges(
 
         if not badge.requirements:
             continue  # No requirements defined
+
+        # Check if seasonal and within season dates
+        if badge.is_seasonal:
+            now = datetime.utcnow()
+            if badge.season_start and now < badge.season_start:
+                continue  # Season hasn't started
+            if badge.season_end and now > badge.season_end:
+                continue  # Season ended
+
+        # Check prerequisites (NEW)
+        if not await check_badge_prerequisites(db, profile, badge):
+            continue  # Prerequisites not met
+
+        # Check if limited and max earners reached (NEW)
+        if badge.is_limited and badge.max_earners:
+            earner_count_result = await db.execute(
+                select(func.count(UserBadge.id))
+                .where(UserBadge.badge_id == badge.id)
+            )
+            earner_count = earner_count_result.scalar()
+            if earner_count >= badge.max_earners:
+                continue  # Max earners reached
 
         # Check requirements
         if await check_badge_requirements(db, profile, badge.requirements):
@@ -196,6 +220,124 @@ async def check_badge_requirements(
         return count >= activity_count
 
     return False
+
+
+async def calculate_badge_progress(
+    db: AsyncSession,
+    profile: UserGameProfile,
+    badge: BadgeDefinition
+) -> Dict[str, Any]:
+    """
+    배지 획득 진행도 계산 (NEW)
+
+    Returns:
+        {
+            "current_value": int,
+            "target_value": int,
+            "percentage": float,
+            "is_completed": bool
+        }
+    """
+    from ..models.gamification import BadgeProgress
+    from sqlalchemy import func
+
+    requirements = badge.requirements
+    if not requirements:
+        return {"current_value": 0, "target_value": 1, "percentage": 0.0, "is_completed": False}
+
+    req_type = requirements.get("type")
+    target_value = requirements.get("value", 1)
+    current_value = 0
+
+    if req_type == "level":
+        current_value = profile.level
+    elif req_type == "xp":
+        current_value = profile.total_xp
+    elif req_type == "streak":
+        current_value = profile.current_streak
+    elif req_type == "longest_streak":
+        current_value = profile.longest_streak
+    elif req_type == "badges":
+        current_value = profile.total_badges
+    elif req_type == "activities":
+        current_value = profile.total_activities
+    elif req_type == "study_hours":
+        current_value = int(profile.total_study_hours)
+    elif req_type == "activity":
+        # Count specific activity
+        activity_value = requirements.get("value")
+        target_value = requirements.get("count", 1)
+
+        result = await db.execute(
+            select(func.count(XPTransaction.id))
+            .where(
+                XPTransaction.user_profile_id == profile.id,
+                XPTransaction.activity_type == activity_value
+            )
+        )
+        current_value = result.scalar() or 0
+
+    percentage = min((current_value / target_value * 100), 100.0) if target_value > 0 else 0.0
+    is_completed = current_value >= target_value
+
+    # Update or create progress record
+    progress_result = await db.execute(
+        select(BadgeProgress).where(
+            BadgeProgress.user_profile_id == profile.id,
+            BadgeProgress.badge_id == badge.id
+        )
+    )
+    progress = progress_result.scalar_one_or_none()
+
+    if not is_completed:  # Only track progress for incomplete badges
+        if progress:
+            progress.current_value = current_value
+            progress.target_value = target_value
+            progress.percentage = percentage
+        else:
+            progress = BadgeProgress(
+                user_profile_id=profile.id,
+                badge_id=badge.id,
+                current_value=current_value,
+                target_value=target_value,
+                percentage=percentage
+            )
+            db.add(progress)
+
+    return {
+        "current_value": current_value,
+        "target_value": target_value,
+        "percentage": percentage,
+        "is_completed": is_completed
+    }
+
+
+async def check_badge_prerequisites(
+    db: AsyncSession,
+    profile: UserGameProfile,
+    badge: BadgeDefinition
+) -> bool:
+    """
+    배지 선행 조건 확인 (NEW)
+    Returns True if all prerequisite badges are earned
+    """
+    if not badge.prerequisite_badge_keys:
+        return True  # No prerequisites
+
+    # Get earned badge keys
+    result = await db.execute(
+        select(BadgeDefinition.badge_key)
+        .join(UserBadge, UserBadge.badge_id == BadgeDefinition.id)
+        .where(UserBadge.user_profile_id == profile.id)
+    )
+    earned_keys = set(result.scalars().all())
+
+    # Check all prerequisites are earned
+    for prereq_key in badge.prerequisite_badge_keys:
+        if prereq_key not in earned_keys:
+            return False
+
+    return True
 
 
 # XP amounts for different activities

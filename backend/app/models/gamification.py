@@ -207,6 +207,18 @@ class BadgeDefinition(Base):
     badge_type = Column(SQLEnum(BadgeType), default=BadgeType.BRONZE, nullable=False)
     category = Column(SQLEnum(BadgeCategory), default=BadgeCategory.LEARNING, nullable=False)
 
+    # Badge Collections & Series (NEW)
+    collection_key = Column(String(100))  # 배지 컬렉션 키 (예: "python_master", "streak_warrior")
+    collection_name = Column(String(200))  # 컬렉션 이름 (예: "Python 마스터", "스트릭 전사")
+    series_order = Column(Integer, default=0)  # 컬렉션 내 순서 (0: 첫번째, 1: 두번째...)
+
+    # Prerequisites (NEW)
+    prerequisite_badge_keys = Column(JSON)  # 선행 배지 키 리스트 ["badge_1", "badge_2"]
+
+    # Course/Module Specific (NEW)
+    related_course_id = Column(UUID(as_uuid=True))  # 특정 강의와 연결
+    related_module_id = Column(UUID(as_uuid=True))  # 특정 모듈과 연결
+
     # Requirements (JSON으로 유연하게 저장)
     requirements = Column(JSON)  # {"type": "streak", "value": 7} 등
 
@@ -218,6 +230,13 @@ class BadgeDefinition(Base):
     order = Column(Integer, default=0)  # 정렬 순서
     is_secret = Column(Boolean, default=False)  # 숨겨진 배지 (획득 전까지 표시 안됨)
     is_active = Column(Boolean, default=True, nullable=False)
+
+    # Event/Seasonal (NEW)
+    is_seasonal = Column(Boolean, default=False)  # 시즌 한정 배지
+    season_start = Column(DateTime)  # 시즌 시작일
+    season_end = Column(DateTime)  # 시즌 종료일
+    is_limited = Column(Boolean, default=False)  # 한정판 배지 (최초 N명만 획득 가능 등)
+    max_earners = Column(Integer)  # 최대 획득 가능 인원
 
     # Metadata
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
@@ -376,3 +395,131 @@ class Leaderboard(Base):
 
     # Relationships
     user = relationship("UserProfile", foreign_keys=[user_id])
+
+
+class CourseLeaderboard(Base):
+    """
+    강의별 리더보드 (NEW)
+    특정 강의/모듈/챕터별 순위 추적
+    """
+    __tablename__ = "course_leaderboards"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("user_profiles.id", ondelete="CASCADE"), nullable=False)
+
+    # Course context
+    leaderboard_type = Column(String(20), nullable=False)  # "track", "module", "chapter"
+    entity_id = Column(UUID(as_uuid=True), nullable=False)  # Track/Module/Chapter ID
+    entity_name = Column(String(200))  # 캐시용
+
+    # Period
+    period_type = Column(String(20), nullable=False)  # "weekly", "monthly", "all_time"
+    period_start = Column(DateTime, nullable=False)
+    period_end = Column(DateTime, nullable=False)
+
+    # Ranking
+    rank = Column(Integer, nullable=False)
+    score = Column(Integer, nullable=False)  # 점수 (완료율, XP 등의 조합)
+
+    # Stats
+    topics_completed = Column(Integer, default=0)
+    completion_percentage = Column(Float, default=0.0)
+    xp_earned = Column(Integer, default=0)
+    time_spent_minutes = Column(Integer, default=0)
+
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # Relationships
+    user = relationship("UserProfile", foreign_keys=[user_id])
+
+
+class Team(Base):
+    """
+    팀/길드 시스템 (NEW)
+    사용자들이 팀을 구성하여 협력하거나 경쟁
+    """
+    __tablename__ = "teams"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    # Team info
+    name = Column(String(100), nullable=False, unique=True)
+    description = Column(Text)
+    tag = Column(String(10))  # 팀 태그 (예: "PY", "ML")
+    icon_emoji = Column(String(10), default="👥")
+    banner_color = Column(String(7), default="#6366f1")  # Hex color
+
+    # Team stats
+    total_members = Column(Integer, default=0, nullable=False)
+    max_members = Column(Integer, default=50, nullable=False)
+    total_team_xp = Column(Integer, default=0, nullable=False)
+    team_level = Column(Integer, default=1, nullable=False)
+    team_rank = Column(Integer)  # 전체 팀 순위
+
+    # Settings
+    is_public = Column(Boolean, default=True)  # 공개 팀 여부
+    join_requires_approval = Column(Boolean, default=False)  # 가입 승인 필요
+    is_active = Column(Boolean, default=True)
+
+    # Metadata
+    created_by = Column(UUID(as_uuid=True), ForeignKey("user_profiles.id", ondelete="SET NULL"))
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    # Relationships
+    members = relationship("TeamMember", back_populates="team", cascade="all, delete-orphan")
+    creator = relationship("UserProfile", foreign_keys=[created_by])
+
+
+class TeamMember(Base):
+    """
+    팀 멤버 (NEW)
+    """
+    __tablename__ = "team_members"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    team_id = Column(UUID(as_uuid=True), ForeignKey("teams.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("user_profiles.id", ondelete="CASCADE"), nullable=False)
+
+    # Role
+    role = Column(String(20), default="member", nullable=False)  # "owner", "admin", "member"
+
+    # Contribution
+    xp_contributed = Column(Integer, default=0, nullable=False)
+    activities_contributed = Column(Integer, default=0, nullable=False)
+
+    # Status
+    is_active = Column(Boolean, default=True, nullable=False)
+
+    # Metadata
+    joined_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    last_contribution_at = Column(DateTime)
+
+    # Relationships
+    team = relationship("Team", back_populates="members")
+    user = relationship("UserProfile")
+
+
+class BadgeProgress(Base):
+    """
+    배지 진행도 추적 (NEW)
+    아직 획득하지 못한 배지에 대한 진행도
+    """
+    __tablename__ = "badge_progress"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_profile_id = Column(UUID(as_uuid=True), ForeignKey("user_game_profiles.id", ondelete="CASCADE"), nullable=False)
+    badge_id = Column(UUID(as_uuid=True), ForeignKey("badge_definitions.id", ondelete="CASCADE"), nullable=False)
+
+    # Progress
+    current_value = Column(Integer, default=0)  # 현재 진행도 (예: 현재 스트릭 5일)
+    target_value = Column(Integer, nullable=False)  # 목표 값 (예: 목표 7일)
+    percentage = Column(Float, default=0.0)  # 진행률 (0-100)
+
+    # Metadata
+    last_updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    user_profile = relationship("UserGameProfile")
+    badge = relationship("BadgeDefinition")

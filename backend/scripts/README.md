@@ -71,19 +71,100 @@
 - ⚠️ 실행 전에 백업 권장
 - ⚠️ 실제 비디오 URL과 콘텐츠는 나중에 업데이트 필요
 
-## 🏅 게이미피케이션 데이터 생성 (seed_gamification.py)
+## 🏅 게이미피케이션 데이터 생성
+
+### 기본 게이미피케이션 (seed_gamification.py)
 
 배지와 일일 미션을 생성합니다.
 
-### 사용 방법
 ```bash
 cd backend
 python scripts/seed_gamification.py
 ```
 
-### 생성되는 데이터
+**생성되는 데이터**:
 - 24개 배지 (브론즈, 실버, 골드, 플래티넘, 특별)
 - 5개 일일 미션
+
+### 강화 게이미피케이션 (seed_gamification_enhanced.py) ⭐ NEW
+
+배지 컬렉션, 시리즈, 시즌별 배지, 팀 시스템을 포함한 고급 게이미피케이션 데이터를 생성합니다.
+
+```bash
+cd backend
+python scripts/seed_gamification_enhanced.py
+```
+
+**생성되는 데이터**:
+
+1. **배지 컬렉션 (4개 시리즈)**:
+   - **Python Master** (4단계): Python 학습 진행도에 따른 배지
+     - 🐍 Python 입문자 (Bronze) → ✨ Python 숙련자 (Silver) → 💎 Python 전문가 (Gold) → 👑 Python 그랜드마스터 (Platinum)
+
+   - **Data Science Warrior** (4단계): 데이터 사이언스 마스터 과정
+     - 📊 데이터 새내기 → 📈 데이터 분석가 → 🔬 데이터 사이언티스트 → 🤖 머신러닝 챔피언
+
+   - **Streak Warrior** (4단계): 연속 학습 일수 달성
+     - 🔥 3일 → 🔥🔥 7일 → 🔥🔥🔥 30일 → 🔥👑 100일 전설
+
+   - **Level Master** (4단계): 레벨 마일스톤
+     - ⭐ Lv.10 → ⭐⭐ Lv.25 → ⭐⭐⭐ Lv.50 → 💎 Lv.100
+
+2. **특별 이벤트 배지**:
+   - 🚀 얼리 어답터 (한정판 - 최초 100명)
+   - ❄️ 2025 겨울 시즌 (시즌 한정)
+   - 🏆 배지 수집가 (10개 이상 배지 획득)
+   - 👥 팀 플레이어 (팀 활동)
+
+3. **일일/주간 미션**: 5개
+4. **샘플 팀**: 4개 (Python Ninjas, Data Science Guild, ML Warriors, Code Masters)
+
+**새로운 기능**:
+- ✅ 배지 선행 조건 시스템 (다음 배지를 획득하려면 이전 배지 필요)
+- ✅ 배지 컬렉션 및 시리즈 (관련 배지를 그룹화하여 진행도 추적)
+- ✅ 시즌별/한정판 배지 (기간 한정 또는 인원 제한)
+- ✅ 팀/길드 시스템
+- ✅ 배지 획득 진행도 추적
+
+## 🎯 새로운 API 엔드포인트
+
+강화된 게이미피케이션 시스템은 다음의 새로운 API 엔드포인트를 제공합니다:
+
+### 배지 진행도 및 컬렉션
+- `GET /api/v1/gamification/badges/progress` - 아직 획득하지 못한 배지의 진행도 조회
+- `GET /api/v1/gamification/badges/collections` - 배지 컬렉션 목록 및 완료율 조회
+
+### 강의별 리더보드
+- `GET /api/v1/gamification/leaderboards/course/{entity_type}/{entity_id}` - 강의/모듈/챕터별 리더보드
+  - `entity_type`: "track", "module", "chapter"
+  - `period`: "weekly", "monthly", "all_time"
+
+### 팀/길드 시스템
+- `GET /api/v1/gamification/teams` - 모든 공개 팀 조회
+- `POST /api/v1/gamification/teams` - 새 팀 생성
+- `GET /api/v1/gamification/teams/{team_id}` - 팀 상세 정보 (멤버 포함)
+- `POST /api/v1/gamification/teams/{team_id}/join` - 팀 가입
+- `GET /api/v1/gamification/teams/leaderboard` - 팀 리더보드
+
+### 사용 예시
+
+```bash
+# 배지 진행도 조회
+curl -H "Authorization: Bearer {token}" \
+  http://localhost:8000/api/v1/gamification/badges/progress
+
+# 배지 컬렉션 조회
+curl -H "Authorization: Bearer {token}" \
+  http://localhost:8000/api/v1/gamification/badges/collections
+
+# Python 모듈 리더보드 조회
+curl -H "Authorization: Bearer {token}" \
+  "http://localhost:8000/api/v1/gamification/leaderboards/course/module/{module_id}?period=weekly"
+
+# 모든 팀 조회
+curl -H "Authorization: Bearer {token}" \
+  http://localhost:8000/api/v1/gamification/teams
+```
 
 ## 🔧 트러블슈팅
 

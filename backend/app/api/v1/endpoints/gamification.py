@@ -637,3 +637,503 @@ async def update_badge_definition(
     await db.refresh(badge)
 
     return badge
+
+
+# ==================== NEW: Badge Progress & Collections ====================
+
+@router.get("/badges/progress")
+async def get_badge_progress(
+    current_user: dict = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get progress toward all unearned badges
+    배지 획득 진행도 조회
+    """
+    from ....services.gamification_service import calculate_badge_progress
+    from ....models.gamification import BadgeProgress
+
+    user_id = UUID(current_user["id"])
+    profile = await get_or_create_game_profile(user_id, db)
+
+    # Get earned badge IDs
+    earned_result = await db.execute(
+        select(UserBadge.badge_id).where(UserBadge.user_profile_id == profile.id)
+    )
+    earned_badge_ids = set(earned_result.scalars().all())
+
+    # Get all active badges
+    badges_result = await db.execute(
+        select(BadgeDefinition).where(BadgeDefinition.is_active == True)
+    )
+    all_badges = badges_result.scalars().all()
+
+    # Calculate progress for unearned badges
+    progress_data = []
+    for badge in all_badges:
+        if badge.id in earned_badge_ids:
+            continue  # Skip earned badges
+
+        progress = await calculate_badge_progress(db, profile, badge)
+
+        progress_data.append({
+            "badge_id": str(badge.id),
+            "badge_key": badge.badge_key,
+            "name": badge.name,
+            "description": badge.description,
+            "icon_emoji": badge.icon_emoji,
+            "badge_type": badge.badge_type,
+            "category": badge.category,
+            "xp_reward": badge.xp_reward,
+            "points_reward": badge.points_reward,
+            "collection_key": badge.collection_key,
+            "collection_name": badge.collection_name,
+            "current_value": progress["current_value"],
+            "target_value": progress["target_value"],
+            "percentage": progress["percentage"],
+            "is_completed": progress["is_completed"],
+        })
+
+    await db.commit()
+
+    # Sort by percentage (closest to completion first)
+    progress_data.sort(key=lambda x: x["percentage"], reverse=True)
+
+    return progress_data
+
+
+@router.get("/badges/collections")
+async def get_badge_collections(
+    current_user: dict = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get all badge collections with user's progress
+    배지 컬렉션 목록 조회
+    """
+    user_id = UUID(current_user["id"])
+    profile = await get_or_create_game_profile(user_id, db)
+
+    # Get earned badge IDs
+    earned_result = await db.execute(
+        select(UserBadge.badge_id).where(UserBadge.user_profile_id == profile.id)
+    )
+    earned_badge_ids = set(earned_result.scalars().all())
+
+    # Get all badges grouped by collection
+    badges_result = await db.execute(
+        select(BadgeDefinition)
+        .where(
+            BadgeDefinition.is_active == True,
+            BadgeDefinition.collection_key.isnot(None)
+        )
+        .order_by(BadgeDefinition.collection_key, BadgeDefinition.series_order)
+    )
+    all_badges = badges_result.scalars().all()
+
+    # Group by collection
+    collections = {}
+    for badge in all_badges:
+        collection_key = badge.collection_key
+        if collection_key not in collections:
+            collections[collection_key] = {
+                "collection_key": collection_key,
+                "collection_name": badge.collection_name,
+                "badges": [],
+                "total_badges": 0,
+                "earned_badges": 0,
+                "completion_percentage": 0.0,
+            }
+
+        is_earned = badge.id in earned_badge_ids
+        collections[collection_key]["badges"].append({
+            "id": str(badge.id),
+            "badge_key": badge.badge_key,
+            "name": badge.name,
+            "description": badge.description,
+            "icon_emoji": badge.icon_emoji,
+            "badge_type": badge.badge_type,
+            "xp_reward": badge.xp_reward,
+            "points_reward": badge.points_reward,
+            "series_order": badge.series_order,
+            "is_earned": is_earned,
+        })
+
+        collections[collection_key]["total_badges"] += 1
+        if is_earned:
+            collections[collection_key]["earned_badges"] += 1
+
+    # Calculate completion percentages
+    for collection in collections.values():
+        if collection["total_badges"] > 0:
+            collection["completion_percentage"] = (
+                collection["earned_badges"] / collection["total_badges"] * 100
+            )
+
+    return list(collections.values())
+
+
+# ==================== NEW: Course-Specific Leaderboards ====================
+
+@router.get("/leaderboards/course/{entity_type}/{entity_id}")
+async def get_course_leaderboard(
+    entity_type: str,  # "track", "module", "chapter"
+    entity_id: UUID,
+    period: str = Query("all_time", regex="^(weekly|monthly|all_time)$"),
+    limit: int = Query(50, le=100),
+    current_user: dict = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get course-specific leaderboard
+    강의별 리더보드 조회
+    """
+    from ....models.gamification import CourseLeaderboard
+    from ....models.learning import LearningTopicProgress, TopicStatus
+
+    # Calculate period dates
+    now = datetime.utcnow()
+    if period == "weekly":
+        period_start = now - timedelta(days=7)
+    elif period == "monthly":
+        period_start = now - timedelta(days=30)
+    else:
+        period_start = datetime(2000, 1, 1)
+
+    # Query course leaderboard from cached table
+    leaderboard_result = await db.execute(
+        select(CourseLeaderboard)
+        .where(
+            CourseLeaderboard.entity_id == entity_id,
+            CourseLeaderboard.leaderboard_type == entity_type,
+            CourseLeaderboard.period_type == period,
+            CourseLeaderboard.period_start >= period_start
+        )
+        .order_by(CourseLeaderboard.rank)
+        .limit(limit)
+    )
+    cached_entries = leaderboard_result.scalars().all()
+
+    # If no cached data, calculate on-the-fly
+    if not cached_entries:
+        # This is a simplified version - in production, use background jobs to populate CourseLeaderboard
+        return {
+            "entity_type": entity_type,
+            "entity_id": str(entity_id),
+            "period": period,
+            "entries": [],
+            "message": "Leaderboard data is being generated. Please check back later."
+        }
+
+    # Get user profiles for the entries
+    user_ids = [entry.user_id for entry in cached_entries]
+    users_result = await db.execute(
+        select(UserProfile).where(UserProfile.id.in_(user_ids))
+    )
+    users = {user.id: user for user in users_result.scalars().all()}
+
+    # Format response
+    entries = []
+    for entry in cached_entries:
+        user = users.get(entry.user_id)
+        if user:
+            entries.append({
+                "rank": entry.rank,
+                "user_id": str(user.id),
+                "username": user.username,
+                "avatar_url": user.avatar_url,
+                "score": entry.score,
+                "topics_completed": entry.topics_completed,
+                "completion_percentage": entry.completion_percentage,
+                "xp_earned": entry.xp_earned,
+                "time_spent_minutes": entry.time_spent_minutes,
+            })
+
+    return {
+        "entity_type": entity_type,
+        "entity_id": str(entity_id),
+        "period": period,
+        "total_entries": len(entries),
+        "entries": entries
+    }
+
+
+# ==================== NEW: Team/Guild System ====================
+
+@router.get("/teams")
+async def get_all_teams(
+    limit: int = Query(50, le=100),
+    offset: int = Query(0, ge=0),
+    search: Optional[str] = None,
+    current_user: dict = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get all public teams
+    모든 공개 팀 조회
+    """
+    from ....models.gamification import Team, TeamMember
+
+    # Build query
+    query = select(Team).where(Team.is_active == True, Team.is_public == True)
+
+    if search:
+        query = query.where(
+            or_(
+                Team.name.ilike(f"%{search}%"),
+                Team.description.ilike(f"%{search}%")
+            )
+        )
+
+    query = query.order_by(desc(Team.total_team_xp)).limit(limit).offset(offset)
+
+    result = await db.execute(query)
+    teams = result.scalars().all()
+
+    return [{
+        "id": str(team.id),
+        "name": team.name,
+        "description": team.description,
+        "tag": team.tag,
+        "icon_emoji": team.icon_emoji,
+        "banner_color": team.banner_color,
+        "total_members": team.total_members,
+        "max_members": team.max_members,
+        "total_team_xp": team.total_team_xp,
+        "team_level": team.team_level,
+        "team_rank": team.team_rank,
+        "is_public": team.is_public,
+        "join_requires_approval": team.join_requires_approval,
+        "created_at": team.created_at.isoformat(),
+    } for team in teams]
+
+
+@router.post("/teams")
+async def create_team(
+    name: str,
+    description: Optional[str] = None,
+    tag: Optional[str] = None,
+    icon_emoji: str = "👥",
+    banner_color: str = "#6366f1",
+    is_public: bool = True,
+    join_requires_approval: bool = False,
+    current_user: dict = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Create a new team
+    팀 생성
+    """
+    from ....models.gamification import Team, TeamMember
+
+    user_id = UUID(current_user["id"])
+
+    # Check if team name already exists
+    existing = await db.execute(
+        select(Team).where(Team.name == name)
+    )
+    if existing.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Team name already exists"
+        )
+
+    # Create team
+    team = Team(
+        name=name,
+        description=description,
+        tag=tag,
+        icon_emoji=icon_emoji,
+        banner_color=banner_color,
+        is_public=is_public,
+        join_requires_approval=join_requires_approval,
+        created_by=user_id,
+        total_members=1
+    )
+    db.add(team)
+    await db.flush()
+
+    # Add creator as owner
+    member = TeamMember(
+        team_id=team.id,
+        user_id=user_id,
+        role="owner"
+    )
+    db.add(member)
+
+    await db.commit()
+    await db.refresh(team)
+
+    return {
+        "id": str(team.id),
+        "name": team.name,
+        "description": team.description,
+        "message": "Team created successfully"
+    }
+
+
+@router.post("/teams/{team_id}/join")
+async def join_team(
+    team_id: UUID,
+    current_user: dict = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Join a team
+    팀 가입
+    """
+    from ....models.gamification import Team, TeamMember
+
+    user_id = UUID(current_user["id"])
+
+    # Get team
+    team_result = await db.execute(
+        select(Team).where(Team.id == team_id, Team.is_active == True)
+    )
+    team = team_result.scalar_one_or_none()
+
+    if not team:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Team not found"
+        )
+
+    # Check if team is full
+    if team.total_members >= team.max_members:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Team is full"
+        )
+
+    # Check if already a member
+    existing_member = await db.execute(
+        select(TeamMember).where(
+            TeamMember.team_id == team_id,
+            TeamMember.user_id == user_id
+        )
+    )
+    if existing_member.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Already a member of this team"
+        )
+
+    # Add member
+    member = TeamMember(
+        team_id=team_id,
+        user_id=user_id,
+        role="member"
+    )
+    db.add(member)
+
+    team.total_members += 1
+
+    await db.commit()
+
+    return {
+        "message": "Successfully joined team" if not team.join_requires_approval else "Join request sent"
+    }
+
+
+@router.get("/teams/{team_id}")
+async def get_team_details(
+    team_id: UUID,
+    current_user: dict = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get team details with members
+    팀 상세 정보 조회
+    """
+    from ....models.gamification import Team, TeamMember
+
+    # Get team
+    team_result = await db.execute(
+        select(Team).where(Team.id == team_id)
+    )
+    team = team_result.scalar_one_or_none()
+
+    if not team:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Team not found"
+        )
+
+    # Get members
+    members_result = await db.execute(
+        select(TeamMember, UserProfile)
+        .join(UserProfile, TeamMember.user_id == UserProfile.id)
+        .where(TeamMember.team_id == team_id, TeamMember.is_active == True)
+        .order_by(desc(TeamMember.xp_contributed))
+    )
+    members_data = members_result.all()
+
+    members = [{
+        "user_id": str(member.user_id),
+        "username": user.username,
+        "avatar_url": user.avatar_url,
+        "role": member.role,
+        "xp_contributed": member.xp_contributed,
+        "activities_contributed": member.activities_contributed,
+        "joined_at": member.joined_at.isoformat(),
+    } for member, user in members_data]
+
+    return {
+        "id": str(team.id),
+        "name": team.name,
+        "description": team.description,
+        "tag": team.tag,
+        "icon_emoji": team.icon_emoji,
+        "banner_color": team.banner_color,
+        "total_members": team.total_members,
+        "max_members": team.max_members,
+        "total_team_xp": team.total_team_xp,
+        "team_level": team.team_level,
+        "team_rank": team.team_rank,
+        "is_public": team.is_public,
+        "join_requires_approval": team.join_requires_approval,
+        "created_at": team.created_at.isoformat(),
+        "members": members
+    }
+
+
+@router.get("/teams/leaderboard")
+async def get_team_leaderboard(
+    limit: int = Query(50, le=100),
+    period: str = Query("all_time", regex="^(weekly|monthly|all_time)$"),
+    current_user: dict = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get team leaderboard
+    팀 리더보드 조회
+    """
+    from ....models.gamification import Team
+
+    # Get teams ordered by XP
+    teams_result = await db.execute(
+        select(Team)
+        .where(Team.is_active == True, Team.is_public == True)
+        .order_by(desc(Team.total_team_xp))
+        .limit(limit)
+    )
+    teams = teams_result.scalars().all()
+
+    entries = []
+    for rank, team in enumerate(teams, start=1):
+        entries.append({
+            "rank": rank,
+            "team_id": str(team.id),
+            "name": team.name,
+            "tag": team.tag,
+            "icon_emoji": team.icon_emoji,
+            "total_members": team.total_members,
+            "total_team_xp": team.total_team_xp,
+            "team_level": team.team_level,
+        })
+
+    return {
+        "period": period,
+        "total_teams": len(entries),
+        "entries": entries
+    }

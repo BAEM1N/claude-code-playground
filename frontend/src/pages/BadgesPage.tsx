@@ -32,8 +32,11 @@ interface UserBadge {
 const BadgesPage: React.FC = () => {
   const [myBadges, setMyBadges] = useState<UserBadge[]>([]);
   const [allBadges, setAllBadges] = useState<Badge[]>([]);
+  const [badgeProgress, setBadgeProgress] = useState<any[]>([]);
+  const [badgeCollections, setBadgeCollections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<'all' | 'collections'>('all');
 
   useEffect(() => {
     loadBadges();
@@ -42,12 +45,20 @@ const BadgesPage: React.FC = () => {
   const loadBadges = async () => {
     try {
       setLoading(true);
-      const [myBadgesRes, allBadgesRes] = await Promise.all([
+      const [myBadgesRes, allBadgesRes, progressRes, collectionsRes] = await Promise.all([
         gamificationAPI.getMyBadges(),
         gamificationAPI.getAllBadges(),
+        fetch('/api/v1/gamification/badges/progress', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+        }).then(r => r.json()).catch(() => []),
+        fetch('/api/v1/gamification/badges/collections', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+        }).then(r => r.json()).catch(() => []),
       ]);
       setMyBadges(myBadgesRes.data);
       setAllBadges(allBadgesRes.data);
+      setBadgeProgress(progressRes || []);
+      setBadgeCollections(collectionsRes || []);
     } catch (error) {
       console.error('Failed to load badges:', error);
     } finally {
@@ -128,26 +139,109 @@ const BadgesPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Category Filter */}
-        <div className="mb-6 flex flex-wrap gap-2">
-          {categories.map(cat => (
-            <button
-              key={cat.key}
-              onClick={() => setSelectedCategory(cat.key)}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                selectedCategory === cat.key
-                  ? 'bg-indigo-600 text-white shadow-lg'
-                  : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
-              }`}
-            >
-              <span className="mr-1">{cat.emoji}</span>
-              {cat.label}
-            </button>
-          ))}
+        {/* View Mode Toggle */}
+        <div className="mb-4 flex gap-2">
+          <button
+            onClick={() => setViewMode('all')}
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              viewMode === 'all'
+                ? 'bg-indigo-600 text-white shadow-lg'
+                : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
+            }`}
+          >
+            모든 배지
+          </button>
+          <button
+            onClick={() => setViewMode('collections')}
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              viewMode === 'collections'
+                ? 'bg-indigo-600 text-white shadow-lg'
+                : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
+            }`}
+          >
+            컬렉션 ({badgeCollections.length})
+          </button>
         </div>
 
+        {/* Category Filter */}
+        {viewMode === 'all' && (
+          <div className="mb-6 flex flex-wrap gap-2">
+            {categories.map(cat => (
+              <button
+                key={cat.key}
+                onClick={() => setSelectedCategory(cat.key)}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  selectedCategory === cat.key
+                    ? 'bg-indigo-600 text-white shadow-lg'
+                    : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
+                }`}
+              >
+                <span className="mr-1">{cat.emoji}</span>
+                {cat.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Badge Collections View */}
+        {viewMode === 'collections' && badgeCollections.length > 0 && (
+          <div className="space-y-8">
+            {badgeCollections.map((collection: any) => (
+              <div key={collection.collection_key} className="bg-white rounded-lg shadow-lg p-6">
+                <div className="mb-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <h2 className="text-2xl font-bold text-gray-900">{collection.collection_name}</h2>
+                    <span className="text-sm font-semibold text-indigo-600">
+                      {collection.earned_badges}/{collection.total_badges} 완료
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div
+                      className="bg-gradient-to-r from-indigo-500 to-purple-600 h-3 rounded-full transition-all duration-500"
+                      style={{ width: `${collection.completion_percentage}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {collection.completion_percentage.toFixed(0)}% 완료
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                  {collection.badges.map((badge: any) => (
+                    <div
+                      key={badge.id}
+                      className={`rounded-lg p-4 text-center transition-all ${
+                        badge.is_earned
+                          ? `bg-gradient-to-br ${getBadgeTypeColor(badge.badge_type)} text-white shadow-lg`
+                          : 'bg-gray-100 border-2 border-gray-300 opacity-60'
+                      }`}
+                    >
+                      <div className={`text-5xl mb-2 ${!badge.is_earned ? 'grayscale' : ''}`}>
+                        {badge.icon_emoji || '🏅'}
+                      </div>
+                      <h3 className={`font-bold text-sm mb-1 ${!badge.is_earned ? 'text-gray-700' : ''}`}>
+                        {badge.name}
+                      </h3>
+                      <p className={`text-xs mb-2 ${!badge.is_earned ? 'text-gray-600' : 'opacity-90'}`}>
+                        {badge.description}
+                      </p>
+                      <div className="text-xs">
+                        {badge.is_earned ? (
+                          <span className="font-medium">✅ 획득완료</span>
+                        ) : (
+                          <span className="text-gray-600">🔒 잠김</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* My Badges */}
-        {filteredMyBadges.length > 0 && (
+        {viewMode === 'all' && filteredMyBadges.length > 0 && (
           <div className="mb-12">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">✨ 획득한 배지</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -191,43 +285,66 @@ const BadgesPage: React.FC = () => {
           </div>
         )}
 
-        {/* Available Badges */}
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">🔒 획득 가능한 배지</h2>
-          {filteredBadges.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {filteredBadges.map(badge => (
-                <div
-                  key={badge.id}
-                  className="bg-white border-2 border-gray-200 rounded-lg shadow p-6 relative opacity-75 hover:opacity-100 transition-opacity"
-                >
-                  <div className="text-center">
-                    <div className="text-6xl mb-3 grayscale">
-                      {badge.icon_emoji || '🏅'}
-                    </div>
-                    <h3 className="font-bold text-lg mb-2 text-gray-900">{badge.name}</h3>
-                    <p className="text-sm text-gray-600 mb-3">{badge.description}</p>
+        {/* Available Badges with Progress */}
+        {viewMode === 'all' && (
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">🔒 획득 가능한 배지</h2>
+            {filteredBadges.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {filteredBadges.map(badge => {
+                  const progress = badgeProgress.find((p: any) => p.badge_id === badge.id);
+                  return (
+                    <div
+                      key={badge.id}
+                      className="bg-white border-2 border-gray-200 rounded-lg shadow p-6 relative opacity-75 hover:opacity-100 transition-opacity"
+                    >
+                      <div className="text-center">
+                        <div className="text-6xl mb-3 grayscale">
+                          {badge.icon_emoji || '🏅'}
+                        </div>
+                        <h3 className="font-bold text-lg mb-2 text-gray-900">{badge.name}</h3>
+                        <p className="text-sm text-gray-600 mb-3">{badge.description}</p>
 
-                    <div className="bg-gray-100 rounded-lg p-2 mb-2">
-                      <p className="text-xs text-gray-500">보상</p>
-                      <p className="text-sm font-medium text-gray-700">
-                        {badge.xp_reward} XP · {badge.points_reward} P
-                      </p>
-                    </div>
+                        {progress && (
+                          <div className="mb-3">
+                            <div className="flex justify-between text-xs text-gray-600 mb-1">
+                              <span>진행도</span>
+                              <span>{progress.current_value}/{progress.target_value}</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div
+                                className="bg-gradient-to-r from-indigo-500 to-purple-600 h-2 rounded-full transition-all"
+                                style={{ width: `${Math.min(progress.percentage, 100)}%` }}
+                              ></div>
+                            </div>
+                            <p className="text-xs text-indigo-600 font-semibold mt-1">
+                              {progress.percentage.toFixed(0)}% 완료
+                            </p>
+                          </div>
+                        )}
 
-                    <span className="inline-block px-3 py-1 bg-gray-200 text-gray-700 text-xs rounded-full font-medium">
-                      {badge.badge_type.toUpperCase()}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="bg-white rounded-lg shadow p-12 text-center">
-              <p className="text-gray-500">모든 배지를 획득했습니다! 🎉</p>
-            </div>
-          )}
-        </div>
+                        <div className="bg-gray-100 rounded-lg p-2 mb-2">
+                          <p className="text-xs text-gray-500">보상</p>
+                          <p className="text-sm font-medium text-gray-700">
+                            {badge.xp_reward} XP · {badge.points_reward} P
+                          </p>
+                        </div>
+
+                        <span className="inline-block px-3 py-1 bg-gray-200 text-gray-700 text-xs rounded-full font-medium">
+                          {badge.badge_type.toUpperCase()}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg shadow p-12 text-center">
+                <p className="text-gray-500">모든 배지를 획득했습니다! 🎉</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -7,9 +7,10 @@ import QuestionEditor from '../components/quiz/QuestionEditor';
 import QuizTaking from '../components/quiz/QuizTaking';
 import QuizResults from '../components/quiz/QuizResults';
 import GradingInterface from '../components/quiz/GradingInterface';
+import { QuizGenerator } from '../components/ai';
 import { useAuth } from '../contexts/AuthContext';
 
-type ViewType = 'list' | 'create' | 'edit' | 'questions' | 'take' | 'results' | 'grade';
+type ViewType = 'list' | 'create' | 'edit' | 'questions' | 'take' | 'results' | 'grade' | 'ai-generate';
 
 const QuizPage: React.FC = () => {
   const { courseId } = useParams<{ courseId: string }>();
@@ -142,6 +143,25 @@ const QuizPage: React.FC = () => {
           </div>
         );
 
+      case 'ai-generate':
+        return (
+          <div>
+            <button
+              onClick={handleBackToList}
+              className="mb-4 text-blue-600 hover:text-blue-700 font-medium"
+            >
+              ← 목록으로 돌아가기
+            </button>
+            <QuizGenerator
+              courseId={parseInt(courseId)}
+              onQuizGenerated={(questions) => {
+                console.log('Quiz generated:', questions);
+                // 생성된 퀴즈를 저장하거나 수동 퀴즈 생성으로 이동할 수 있음
+              }}
+            />
+          </div>
+        );
+
       case 'list':
       default:
         return (
@@ -154,12 +174,23 @@ const QuizPage: React.FC = () => {
                 </p>
               </div>
               {isInstructor && (
-                <button
-                  onClick={handleCreateQuiz}
-                  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 font-medium"
-                >
-                  + 새 퀴즈 만들기
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setView('ai-generate')}
+                    className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 font-medium flex items-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                    AI 퀴즈 생성
+                  </button>
+                  <button
+                    onClick={handleCreateQuiz}
+                    className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 font-medium"
+                  >
+                    + 새 퀴즈 만들기
+                  </button>
+                </div>
               )}
             </div>
 

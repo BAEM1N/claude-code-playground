@@ -2,7 +2,7 @@
 API v1 router.
 """
 from fastapi import APIRouter
-from .endpoints import auth, courses, channels, messages, files, notifications, assignments, assignment_files, attendance, quiz, progress, calendar, learning
+from .endpoints import auth, courses, channels, messages, files, notifications, assignments, assignment_files, attendance, quiz, progress, calendar, learning, ai_assistant, learning_paths, coding, virtual_classroom, forum, competition, dashboard, gamification, teams
 
 api_router = APIRouter()
 
@@ -19,3 +19,12 @@ api_router.include_router(quiz.router, prefix="/quiz", tags=["quiz"])
 api_router.include_router(progress.router, prefix="/progress", tags=["progress"])
 api_router.include_router(calendar.router, prefix="/calendar", tags=["calendar"])
 api_router.include_router(learning.router, prefix="/learning", tags=["learning"])
+api_router.include_router(ai_assistant.router, prefix="/ai", tags=["ai-assistant"])
+api_router.include_router(learning_paths.router, prefix="/learning-paths", tags=["learning-paths"])
+api_router.include_router(coding.router, prefix="/coding", tags=["coding"])
+api_router.include_router(virtual_classroom.router, prefix="/virtual-classroom", tags=["virtual-classroom"])
+api_router.include_router(forum.router, prefix="/forum", tags=["forum"])
+api_router.include_router(competition.router, prefix="/competition", tags=["competition"])
+api_router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
+api_router.include_router(gamification.router, prefix="/gamification", tags=["gamification"])
+api_router.include_router(teams.router, prefix="/teams", tags=["teams"])

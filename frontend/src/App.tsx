@@ -26,6 +26,36 @@ import QuizPage from './pages/QuizPage';
 import ProgressPage from './pages/ProgressPage';
 import CalendarPage from './pages/CalendarPage';
 
+// AI Assistant Pages
+import AIAssistantPage from './pages/AIAssistantPage';
+import AIUsageDashboard from './pages/AIUsageDashboard';
+import AIConversationsPage from './pages/AIConversationsPage';
+
+// Learning Paths Pages
+import LearningPathsPage from './pages/LearningPathsPage';
+import LearningPathDetailPage from './pages/LearningPathDetailPage';
+
+// Learning Module Pages
+import LearningModuleView from './components/learning/LearningModuleView';
+
+// Coding Environment Pages
+import CodingPlaygroundPage from './pages/CodingPlaygroundPage';
+
+// Virtual Classroom Pages
+import VirtualClassroomPage from './pages/VirtualClassroomPage';
+
+// Forum Pages
+import ForumPage from './pages/ForumPage';
+
+// Competition Pages
+import CompetitionsPage from './pages/CompetitionsPage';
+import CompetitionDetailPage from './pages/CompetitionDetailPage';
+
+// Gamification Pages
+import BadgesPage from './pages/BadgesPage';
+import LeaderboardPage from './pages/LeaderboardPage';
+import TeamsPage from './pages/TeamsPage';
+
 // Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -169,6 +199,141 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <CalendarPage />
+          </ProtectedRoute>
+        }
+      />
+      {/* AI Assistant */}
+      <Route
+        path="/ai-assistant"
+        element={
+          <ProtectedRoute>
+            <AIAssistantPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/courses/:courseId/ai-assistant"
+        element={
+          <ProtectedRoute>
+            <AIAssistantPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/ai-usage"
+        element={
+          <ProtectedRoute>
+            <AIUsageDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/ai-conversations"
+        element={
+          <ProtectedRoute>
+            <AIConversationsPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Learning Paths */}
+      <Route
+        path="/learning-paths"
+        element={
+          <ProtectedRoute>
+            <LearningPathsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/learning-paths/:pathId"
+        element={
+          <ProtectedRoute>
+            <LearningPathDetailPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Learning Modules - Video/Markdown/Notebook Learning */}
+      <Route
+        path="/learning/modules/:moduleId/topics/:topicId?"
+        element={
+          <ProtectedRoute>
+            <LearningModuleView />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Coding Environment */}
+      <Route
+        path="/coding-playground"
+        element={
+          <ProtectedRoute>
+            <CodingPlaygroundPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Virtual Classroom */}
+      <Route
+        path="/virtual-classroom/:classroomId"
+        element={
+          <ProtectedRoute>
+            <VirtualClassroomPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Forum */}
+      <Route
+        path="/forum"
+        element={
+          <ProtectedRoute>
+            <ForumPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Competitions */}
+      <Route
+        path="/competitions"
+        element={
+          <ProtectedRoute>
+            <CompetitionsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/competitions/:competitionId"
+        element={
+          <ProtectedRoute>
+            <CompetitionDetailPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Gamification */}
+      <Route
+        path="/gamification/badges"
+        element={
+          <ProtectedRoute>
+            <BadgesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/gamification/leaderboard"
+        element={
+          <ProtectedRoute>
+            <LeaderboardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/teams"
+        element={
+          <ProtectedRoute>
+            <TeamsPage />
           </ProtectedRoute>
         }
       />

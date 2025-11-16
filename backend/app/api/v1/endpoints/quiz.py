@@ -12,6 +12,8 @@ import random
 from ....core.database import get_db
 from ....core.security import get_current_user
 from ....api.deps import require_instructor_or_assistant, require_course_member
+from ....services.gamification_service import award_xp_to_user, get_xp_for_activity
+from ....models.gamification import XPActivityType
 from ....models.quiz import Quiz, Question, QuizAttempt, Answer
 from ....models.course import Course, CourseMember
 from ....schemas.quiz import (
@@ -443,6 +445,34 @@ async def submit_quiz_attempt(
 
     await db.commit()
     await db.refresh(attempt)
+
+    # Award XP for quiz completion
+    try:
+        user_id = UUID(current_user["id"])
+
+        # Base XP for completing quiz
+        xp_amount = get_xp_for_activity("quiz_complete")
+        activity_type = XPActivityType.QUIZ_COMPLETE
+        description = f"퀴즈 '{quiz.title}' 완료"
+
+        # Bonus XP for perfect score
+        if not manual_grading_required and attempt.percentage == 100:
+            xp_amount = get_xp_for_activity("quiz_perfect")
+            activity_type = XPActivityType.QUIZ_PERFECT
+            description = f"퀴즈 '{quiz.title}' 만점!"
+
+        await award_xp_to_user(
+            db=db,
+            user_id=user_id,
+            activity_type=activity_type,
+            xp_amount=xp_amount,
+            points_amount=xp_amount // 5,
+            description=description,
+            related_entity_type="quiz_attempt",
+            related_entity_id=attempt_id
+        )
+    except Exception as e:
+        print(f"Failed to award XP for quiz: {e}")
 
     return attempt
 

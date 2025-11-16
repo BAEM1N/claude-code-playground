@@ -350,3 +350,9 @@ export interface UseMutationResult<T> {
   isError: boolean;
   error: Error | null;
 }
+
+// ============================================================================
+// AI Assistant Types
+// ============================================================================
+
+export * from './ai';

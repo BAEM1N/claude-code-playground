@@ -330,4 +330,341 @@ export const calendarAPI = createAPIService<CalendarEvent>(api, '/calendar/event
     api.get('/calendar/export/ical', { params, responseType: 'blob' }),
 });
 
+// AI Assistant API
+export const aiAPI = {
+  // Get available providers
+  getProviders: (): Promise<AxiosResponse<any>> =>
+    api.get('/ai/providers'),
+
+  // Chat
+  chat: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/ai/chat', data),
+
+  // Code review
+  reviewCode: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/ai/code-review', data),
+  submitCodeReviewFeedback: (data: { review_id: number; was_helpful: boolean }): Promise<AxiosResponse<any>> =>
+    api.post('/ai/code-review/feedback', data),
+
+  // Concept explanation
+  explainConcept: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/ai/explain', data),
+
+  // Quiz generation
+  generateQuiz: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/ai/generate-quiz', data),
+
+  // Summarization
+  summarize: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/ai/summarize', data),
+
+  // Conversations
+  getConversations: (params?: any): Promise<AxiosResponse<any[]>> =>
+    api.get('/ai/conversations', { params }),
+  getConversation: (conversationId: number): Promise<AxiosResponse<any>> =>
+    api.get(`/ai/conversations/${conversationId}`),
+  deleteConversation: (conversationId: number): Promise<AxiosResponse<void>> =>
+    api.delete(`/ai/conversations/${conversationId}`),
+
+  // Usage statistics
+  getMyUsageStats: (days: number = 30): Promise<AxiosResponse<any>> =>
+    api.get('/ai/usage/my-stats', { params: { days } }),
+  getCourseUsageStats: (courseId: number, days: number = 30): Promise<AxiosResponse<any>> =>
+    api.get(`/ai/usage/course/${courseId}`, { params: { days } }),
+};
+
+// Learning Paths API
+export const learningPathsAPI = {
+  // Get all learning paths
+  getLearningPaths: (params?: { difficulty?: string; tag?: string; skip?: number; limit?: number }): Promise<AxiosResponse<any>> =>
+    api.get('/learning-paths/', { params }),
+
+  // Get single learning path with progress
+  getLearningPath: (pathId: number): Promise<AxiosResponse<any>> =>
+    api.get(`/learning-paths/${pathId}`),
+
+  // Create learning path (instructor only)
+  createLearningPath: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/learning-paths/', data),
+
+  // Enroll in learning path
+  enrollInPath: (pathId: number): Promise<AxiosResponse<any>> =>
+    api.post(`/learning-paths/${pathId}/enroll`),
+
+  // Update item progress
+  updateItemProgress: (itemId: number, data: any): Promise<AxiosResponse<any>> =>
+    api.post(`/learning-paths/items/${itemId}/progress`, data),
+
+  // Get recommendations
+  getRecommendations: (limit?: number): Promise<AxiosResponse<any>> =>
+    api.get('/learning-paths/recommendations/for-me', { params: { limit } }),
+
+  // Get user stats
+  getMyStats: (): Promise<AxiosResponse<any>> =>
+    api.get('/learning-paths/stats/my-stats'),
+};
+
+// Coding Environment API
+export const codingAPI = {
+  // Execute code (playground)
+  executeCode: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/coding/execute', data),
+
+  // Problems
+  getProblems: (params?: any): Promise<AxiosResponse<any>> =>
+    api.get('/coding/problems', { params }),
+  getProblem: (problemId: number): Promise<AxiosResponse<any>> =>
+    api.get(`/coding/problems/${problemId}`),
+  createProblem: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/coding/problems', data),
+
+  // Submissions
+  submitCode: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/coding/submit', data),
+  getMySubmissions: (params?: any): Promise<AxiosResponse<any>> =>
+    api.get('/coding/submissions/my', { params }),
+
+  // Saved code
+  getSavedCodes: (): Promise<AxiosResponse<any>> =>
+    api.get('/coding/saved'),
+  saveCode: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/coding/saved', data),
+  deleteSavedCode: (codeId: number): Promise<AxiosResponse<void>> =>
+    api.delete(`/coding/saved/${codeId}`),
+
+  // Statistics
+  getMyStats: (): Promise<AxiosResponse<any>> =>
+    api.get('/coding/stats/my'),
+
+  // Collaborative sessions
+  createSession: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/coding/sessions', null, { params: data }),
+  getSessions: (params?: any): Promise<AxiosResponse<any>> =>
+    api.get('/coding/sessions', { params }),
+  getSession: (sessionId: number): Promise<AxiosResponse<any>> =>
+    api.get(`/coding/sessions/${sessionId}`),
+  joinSession: (sessionId: number): Promise<AxiosResponse<any>> =>
+    api.post(`/coding/sessions/${sessionId}/join`),
+  endSession: (sessionId: number): Promise<AxiosResponse<any>> =>
+    api.post(`/coding/sessions/${sessionId}/end`),
+};
+
+// Virtual Classroom API
+export const virtualClassroomAPI = {
+  // Classroom management
+  createClassroom: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/virtual-classroom/classrooms', data),
+  getClassrooms: (params?: any): Promise<AxiosResponse<any>> =>
+    api.get('/virtual-classroom/classrooms', { params }),
+  getClassroom: (classroomId: number): Promise<AxiosResponse<any>> =>
+    api.get(`/virtual-classroom/classrooms/${classroomId}`),
+  updateClassroom: (classroomId: number, data: any): Promise<AxiosResponse<any>> =>
+    api.put(`/virtual-classroom/classrooms/${classroomId}`, data),
+  deleteClassroom: (classroomId: number): Promise<AxiosResponse<void>> =>
+    api.delete(`/virtual-classroom/classrooms/${classroomId}`),
+
+  // Classroom control
+  startClassroom: (classroomId: number): Promise<AxiosResponse<any>> =>
+    api.post(`/virtual-classroom/classrooms/${classroomId}/start`),
+  endClassroom: (classroomId: number): Promise<AxiosResponse<any>> =>
+    api.post(`/virtual-classroom/classrooms/${classroomId}/end`),
+
+  // Whiteboard
+  getWhiteboardStrokes: (classroomId: number): Promise<AxiosResponse<any>> =>
+    api.get(`/virtual-classroom/classrooms/${classroomId}/whiteboard`),
+
+  // Files
+  uploadFile: (classroomId: number, file: File, description?: string): Promise<AxiosResponse<any>> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (description) formData.append('description', description);
+    return api.post(`/virtual-classroom/classrooms/${classroomId}/files`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  getFiles: (classroomId: number): Promise<AxiosResponse<any>> =>
+    api.get(`/virtual-classroom/classrooms/${classroomId}/files`),
+
+  // Recordings
+  getRecordings: (classroomId: number): Promise<AxiosResponse<any>> =>
+    api.get(`/virtual-classroom/classrooms/${classroomId}/recordings`),
+
+  // Statistics
+  getStatistics: (): Promise<AxiosResponse<any>> =>
+    api.get('/virtual-classroom/classrooms/stats/overview'),
+  getMyStats: (): Promise<AxiosResponse<any>> =>
+    api.get('/virtual-classroom/classrooms/stats/my-stats'),
+};
+
+// Forum API
+export const forumAPI = {
+  // Forums
+  getForums: (params?: any): Promise<AxiosResponse<any>> =>
+    api.get('/forum/forums', { params }),
+  createForum: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/forum/forums', data),
+
+  // Posts
+  getPosts: (params?: any): Promise<AxiosResponse<any>> =>
+    api.get('/forum/posts', { params }),
+  getPost: (postId: number): Promise<AxiosResponse<any>> =>
+    api.get(`/forum/posts/${postId}`),
+  createPost: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/forum/posts', data),
+  updatePost: (postId: number, data: any): Promise<AxiosResponse<any>> =>
+    api.put(`/forum/posts/${postId}`, data),
+  deletePost: (postId: number): Promise<AxiosResponse<void>> =>
+    api.delete(`/forum/posts/${postId}`),
+
+  // Replies
+  getReplies: (postId: number): Promise<AxiosResponse<any>> =>
+    api.get(`/forum/posts/${postId}/replies`),
+  createReply: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/forum/replies', data),
+  markBestAnswer: (replyId: number): Promise<AxiosResponse<any>> =>
+    api.put(`/forum/replies/${replyId}/best-answer`),
+
+  // Voting
+  votePost: (postId: number, voteType: string): Promise<AxiosResponse<any>> =>
+    api.post(`/forum/posts/${postId}/vote`, { vote_type: voteType }),
+  voteReply: (replyId: number, voteType: string): Promise<AxiosResponse<any>> =>
+    api.post(`/forum/replies/${replyId}/vote`, { vote_type: voteType }),
+
+  // Bookmarks
+  createBookmark: (postId: number): Promise<AxiosResponse<any>> =>
+    api.post('/forum/bookmarks', { post_id: postId }),
+  deleteBookmark: (postId: number): Promise<AxiosResponse<void>> =>
+    api.delete(`/forum/bookmarks/${postId}`),
+
+  // Statistics
+  getStatistics: (): Promise<AxiosResponse<any>> =>
+    api.get('/forum/stats/overview'),
+  getMyStats: (): Promise<AxiosResponse<any>> =>
+    api.get('/forum/stats/my-stats'),
+};
+
+// Competition API
+export const competitionAPI = {
+  // Competition management
+  getCompetitions: (params?: any): Promise<AxiosResponse<any>> =>
+    api.get('/competition/competitions', { params }),
+  getCompetition: (competitionId: number): Promise<AxiosResponse<any>> =>
+    api.get(`/competition/competitions/${competitionId}`),
+  createCompetition: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/competition/competitions', data),
+  updateCompetition: (competitionId: number, data: any): Promise<AxiosResponse<any>> =>
+    api.put(`/competition/competitions/${competitionId}`, data),
+  deleteCompetition: (competitionId: number): Promise<AxiosResponse<void>> =>
+    api.delete(`/competition/competitions/${competitionId}`),
+
+  // Participation
+  joinCompetition: (competitionId: number, teamId?: number): Promise<AxiosResponse<any>> =>
+    api.post(`/competition/competitions/${competitionId}/join`, teamId ? { team_id: teamId } : {}),
+  leaveCompetition: (competitionId: number): Promise<AxiosResponse<void>> =>
+    api.delete(`/competition/competitions/${competitionId}/leave`),
+
+  // Team management
+  createTeam: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/competition/teams', data),
+  getTeam: (teamId: number): Promise<AxiosResponse<any>> =>
+    api.get(`/competition/teams/${teamId}`),
+  updateTeam: (teamId: number, data: any): Promise<AxiosResponse<any>> =>
+    api.put(`/competition/teams/${teamId}`, data),
+  deleteTeam: (teamId: number): Promise<AxiosResponse<void>> =>
+    api.delete(`/competition/teams/${teamId}`),
+  getTeamMembers: (teamId: number): Promise<AxiosResponse<any>> =>
+    api.get(`/competition/teams/${teamId}/members`),
+  inviteMember: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/competition/teams/invite', data),
+  respondToInvite: (inviteId: number, accept: boolean): Promise<AxiosResponse<any>> =>
+    api.post(`/competition/teams/invites/${inviteId}/respond`, { accept }),
+
+  // Submissions
+  submitSolution: (competitionId: number, file: File): Promise<AxiosResponse<any>> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post(`/competition/competitions/${competitionId}/submit`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  getMySubmissions: (competitionId: number, params?: any): Promise<AxiosResponse<any>> =>
+    api.get(`/competition/competitions/${competitionId}/my-submissions`, { params }),
+  getSubmission: (submissionId: number): Promise<AxiosResponse<any>> =>
+    api.get(`/competition/submissions/${submissionId}`),
+
+  // Leaderboard
+  getLeaderboard: (competitionId: number, leaderboardType: 'public' | 'private' = 'public'): Promise<AxiosResponse<any>> =>
+    api.get(`/competition/competitions/${competitionId}/leaderboard`, { params: { leaderboard_type: leaderboardType } }),
+
+  // Data files
+  downloadTrainData: (competitionId: number): Promise<AxiosResponse<Blob>> =>
+    api.get(`/competition/competitions/${competitionId}/data/train`, { responseType: 'blob' }),
+  downloadTestData: (competitionId: number): Promise<AxiosResponse<Blob>> =>
+    api.get(`/competition/competitions/${competitionId}/data/test`, { responseType: 'blob' }),
+  downloadSampleSubmission: (competitionId: number): Promise<AxiosResponse<Blob>> =>
+    api.get(`/competition/competitions/${competitionId}/data/sample-submission`, { responseType: 'blob' }),
+
+  // Statistics
+  getStatistics: (): Promise<AxiosResponse<any>> =>
+    api.get('/competition/stats/overview'),
+  getCompetitionStats: (competitionId: number): Promise<AxiosResponse<any>> =>
+    api.get(`/competition/competitions/${competitionId}/stats`),
+};
+
+// Dashboard API
+export const dashboardAPI = {
+  // Overview statistics
+  getOverviewStats: (): Promise<AxiosResponse<any>> =>
+    api.get('/dashboard/stats/overview'),
+
+  // Assignment statistics
+  getAssignmentStats: (): Promise<AxiosResponse<any>> =>
+    api.get('/dashboard/stats/assignments'),
+
+  // Quiz statistics
+  getQuizStats: (): Promise<AxiosResponse<any>> =>
+    api.get('/dashboard/stats/quizzes'),
+};
+
+// Gamification API
+export const gamificationAPI = {
+  // Profile
+  getProfile: (): Promise<AxiosResponse<any>> =>
+    api.get('/gamification/profile'),
+  updateProfile: (data: any): Promise<AxiosResponse<any>> =>
+    api.patch('/gamification/profile', data),
+
+  // Stats
+  getStats: (): Promise<AxiosResponse<any>> =>
+    api.get('/gamification/stats'),
+
+  // XP
+  awardXP: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/gamification/award-xp', data),
+
+  // Badges
+  getAllBadges: (params?: any): Promise<AxiosResponse<any>> =>
+    api.get('/gamification/badges', { params }),
+  getMyBadges: (): Promise<AxiosResponse<any>> =>
+    api.get('/gamification/my-badges'),
+  updateBadge: (badgeId: string, data: any): Promise<AxiosResponse<any>> =>
+    api.patch(`/gamification/badges/${badgeId}`, data),
+
+  // Leaderboard
+  getLeaderboard: (params?: any): Promise<AxiosResponse<any>> =>
+    api.get('/gamification/leaderboard', { params }),
+
+  // Daily Quests
+  getDailyQuests: (): Promise<AxiosResponse<any>> =>
+    api.get('/gamification/daily-quests'),
+
+  // Admin - Badge definitions
+  createBadge: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/gamification/admin/badges', data),
+  getBadgeDefinition: (badgeId: string): Promise<AxiosResponse<any>> =>
+    api.get(`/gamification/admin/badges/${badgeId}`),
+  updateBadgeDefinition: (badgeId: string, data: any): Promise<AxiosResponse<any>> =>
+    api.patch(`/gamification/admin/badges/${badgeId}`, data),
+};
+
 export default api;

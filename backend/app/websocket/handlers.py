@@ -8,6 +8,8 @@ from fastapi import WebSocket
 from ..models.message import Message, MessageReaction
 from ..schemas.message import MessageCreate
 from .connection_manager import manager
+from .coding_handlers import CODING_HANDLERS
+from .classroom_handlers import CLASSROOM_HANDLERS
 import json
 
 
@@ -216,4 +218,6 @@ EVENT_HANDLERS = {
     "message.typing": WebSocketHandler.handle_message_typing,
     "message.reaction": WebSocketHandler.handle_message_reaction,
     "ping": lambda data, ws, course_id, user_id, db=None: WebSocketHandler.handle_ping(ws),
+    **CODING_HANDLERS,  # Add collaborative coding handlers
+    **CLASSROOM_HANDLERS,  # Add virtual classroom handlers
 }

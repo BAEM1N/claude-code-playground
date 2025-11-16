@@ -14,6 +14,9 @@ from ....api.deps import get_current_active_user
 from ....core.rate_limit import RateLimiter, get_rate_limiter
 from ....services.jupyter_service import execute_code
 from ....services.code_validator import mask_sensitive_data
+from ....services.gamification_service import award_xp_to_user, get_xp_for_activity
+from ....models.gamification import XPActivityType
+from ....models.learning import ContentType
 from ....models.learning import (
     LearningTrack,
     LearningModule,
@@ -562,6 +565,9 @@ async def update_topic_progress(
         )
         db.add(progress)
 
+    # Check if just completed (for XP award)
+    was_not_completed = progress.status != TopicStatus.COMPLETED
+
     # Update fields
     from datetime import datetime
     for field, value in progress_data.model_dump(exclude_unset=True).items():
@@ -577,6 +583,49 @@ async def update_topic_progress(
 
     await db.commit()
     await db.refresh(progress)
+
+    # Award XP if topic just completed
+    if was_not_completed and progress_data.status == TopicStatus.COMPLETED:
+        # Get topic to determine content type
+        topic_result = await db.execute(
+            select(LearningTopic).where(LearningTopic.id == topic_id)
+        )
+        topic = topic_result.scalar_one_or_none()
+
+        if topic:
+            # Determine activity type and XP based on content type
+            if topic.content_type == ContentType.VIDEO:
+                activity_type = XPActivityType.VIDEO_COMPLETE
+                xp_amount = get_xp_for_activity("video_complete")
+                description = f"비디오 '{topic.title}' 완료"
+            elif topic.content_type == ContentType.MARKDOWN:
+                activity_type = XPActivityType.MARKDOWN_COMPLETE
+                xp_amount = get_xp_for_activity("markdown_complete")
+                description = f"문서 '{topic.title}' 완료"
+            elif topic.content_type == ContentType.NOTEBOOK:
+                activity_type = XPActivityType.NOTEBOOK_COMPLETE
+                xp_amount = get_xp_for_activity("notebook_complete")
+                description = f"실습 '{topic.title}' 완료"
+            else:
+                activity_type = XPActivityType.VIDEO_COMPLETE
+                xp_amount = 50
+                description = f"'{topic.title}' 완료"
+
+            # Award XP
+            try:
+                await award_xp_to_user(
+                    db=db,
+                    user_id=user_id,
+                    activity_type=activity_type,
+                    xp_amount=xp_amount,
+                    points_amount=xp_amount // 5,  # Points = XP / 5
+                    description=description,
+                    related_entity_type="learning_topic",
+                    related_entity_id=topic_id
+                )
+            except Exception as e:
+                # Log error but don't fail the request
+                print(f"Failed to award XP: {e}")
 
     return progress
 

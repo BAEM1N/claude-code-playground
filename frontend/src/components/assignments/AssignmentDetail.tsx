@@ -10,12 +10,14 @@ import { useAssignment, useMySubmission } from '../../hooks/useAssignments';
 import SubmissionForm from './SubmissionForm';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { formatDateTime } from '../../utils/formatters';
+import { CodeReview } from '../ai';
 
 const AssignmentDetail = ({ assignmentId, courseId, role }) => {
   const navigate = useNavigate();
   const { data: assignment, isLoading: assignmentLoading } = useAssignment(assignmentId);
   const { data: submission, isLoading: submissionLoading, refetch } = useMySubmission(assignmentId);
   const [showSubmissionForm, setShowSubmissionForm] = useState(false);
+  const [showAIReview, setShowAIReview] = useState(false);
 
   const isStudent = role === 'student';
   const isInstructor = role === 'instructor' || role === 'assistant';
@@ -157,10 +159,34 @@ const AssignmentDetail = ({ assignmentId, courseId, role }) => {
                 {submission.content && (
                   <div className="mt-4">
                     <p className="text-sm text-gray-500 mb-1">제출 내용:</p>
-                    <p className="text-gray-900 whitespace-pre-wrap">{submission.content}</p>
+                    <div className="bg-white border border-gray-200 rounded p-3">
+                      <pre className="text-gray-900 whitespace-pre-wrap font-mono text-sm">{submission.content}</pre>
+                    </div>
+                    <button
+                      onClick={() => setShowAIReview(!showAIReview)}
+                      className="mt-3 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center gap-2"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                      </svg>
+                      {showAIReview ? 'AI 리뷰 닫기' : 'AI 코드 리뷰 받기'}
+                    </button>
                   </div>
                 )}
               </div>
+
+              {/* AI Code Review Section */}
+              {showAIReview && submission.content && (
+                <div className="mt-4">
+                  <CodeReview
+                    initialCode={submission.content}
+                    submissionId={submission.id}
+                    onReviewComplete={(review) => {
+                      console.log('Review completed:', review);
+                    }}
+                  />
+                </div>
+              )}
 
               {/* Grade */}
               {submission.grade && submission.grade.is_released && (

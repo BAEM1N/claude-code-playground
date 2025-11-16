@@ -23,6 +23,27 @@ from .learning import (
     TopicStatus,
     VideoSource,
 )
+from .ai_assistant import (
+    AIConversation,
+    AIMessage,
+    AICodeReview,
+    AIQuizGeneration,
+    AIUsageLog,
+    AIProvider,
+    AITaskType,
+)
+from .gamification import (
+    UserGameProfile,
+    BadgeDefinition,
+    UserBadge,
+    XPTransaction,
+    DailyQuestDefinition,
+    UserDailyQuest,
+    Leaderboard,
+    BadgeType,
+    BadgeCategory,
+    XPActivityType,
+)
 
 __all__ = [
     "UserProfile",
@@ -67,4 +88,21 @@ __all__ = [
     "ContentType",
     "TopicStatus",
     "VideoSource",
+    "AIConversation",
+    "AIMessage",
+    "AICodeReview",
+    "AIQuizGeneration",
+    "AIUsageLog",
+    "AIProvider",
+    "AITaskType",
+    "UserGameProfile",
+    "BadgeDefinition",
+    "UserBadge",
+    "XPTransaction",
+    "DailyQuestDefinition",
+    "UserDailyQuest",
+    "Leaderboard",
+    "BadgeType",
+    "BadgeCategory",
+    "XPActivityType",
 ]

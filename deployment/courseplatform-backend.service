@@ -1,0 +1,28 @@
+[Unit]
+Description=Course Platform Backend API
+After=network.target postgresql.service redis-server.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/claude-code-playground/backend
+Environment="PATH=/var/www/claude-code-playground/backend/venv/bin"
+ExecStart=/var/www/claude-code-playground/backend/venv/bin/uvicorn app.main:app \
+    --host 127.0.0.1 \
+    --port 8000 \
+    --workers 4 \
+    --log-level info
+
+Restart=always
+RestartSec=10
+
+# 보안 설정
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/www/claude-code-playground/backend
+
+[Install]
+WantedBy=multi-user.target

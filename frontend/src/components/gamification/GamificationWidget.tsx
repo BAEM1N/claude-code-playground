@@ -7,14 +7,21 @@ import { Link } from 'react-router-dom';
 import { gamificationAPI } from '../../services/api';
 import XPBar from './XPBar';
 import StreakCard from './StreakCard';
+import LevelUpModal from './LevelUpModal';
+import BadgeUnlockedModal from './BadgeUnlockedModal';
 
 const GamificationWidget: React.FC = () => {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showLevelUpModal, setShowLevelUpModal] = useState(false);
+  const [levelUpData, setLevelUpData] = useState<any>(null);
+  const [showBadgeModal, setShowBadgeModal] = useState(false);
+  const [unlockedBadge, setUnlockedBadge] = useState<any>(null);
 
   useEffect(() => {
     loadStats();
+    checkForLevelUpOrBadges();
   }, []);
 
   const loadStats = async () => {
@@ -28,6 +35,46 @@ const GamificationWidget: React.FC = () => {
       setError('게이미피케이션 데이터를 불러올 수 없습니다');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkForLevelUpOrBadges = async () => {
+    try {
+      // Check for recent level up
+      const levelUpKey = 'lastSeenLevel';
+      const lastSeenLevel = localStorage.getItem(levelUpKey);
+      const { data } = await gamificationAPI.getStats();
+
+      if (lastSeenLevel && parseInt(lastSeenLevel) < data.level) {
+        // Show level up modal
+        setLevelUpData({
+          newLevel: data.level,
+          xpGained: data.total_xp - (parseInt(lastSeenLevel) * 100), // Approximate
+        });
+        setShowLevelUpModal(true);
+      }
+      localStorage.setItem(levelUpKey, data.level.toString());
+
+      // Check for recent badges (last 24 hours)
+      const badgeCheckKey = 'lastBadgeCheck';
+      const lastCheck = localStorage.getItem(badgeCheckKey);
+      const now = new Date().getTime();
+
+      if (!lastCheck || now - parseInt(lastCheck) > 1000) {
+        // Check recent activities for badge unlocks
+        if (data.recent_activities) {
+          const recentBadge = data.recent_activities.find(
+            (activity: any) => activity.badge_unlocked
+          );
+          if (recentBadge && recentBadge.badge) {
+            setUnlockedBadge(recentBadge.badge);
+            setShowBadgeModal(true);
+          }
+        }
+      }
+      localStorage.setItem(badgeCheckKey, now.toString());
+    } catch (err) {
+      console.error('Failed to check for level up or badges:', err);
     }
   };
 
@@ -156,6 +203,24 @@ const GamificationWidget: React.FC = () => {
           <p className="font-medium text-gray-900 group-hover:text-indigo-600">리더보드</p>
         </Link>
       </div>
+
+      {/* Modals */}
+      {levelUpData && (
+        <LevelUpModal
+          isOpen={showLevelUpModal}
+          newLevel={levelUpData.newLevel}
+          xpGained={levelUpData.xpGained}
+          onClose={() => setShowLevelUpModal(false)}
+        />
+      )}
+
+      {unlockedBadge && (
+        <BadgeUnlockedModal
+          isOpen={showBadgeModal}
+          badge={unlockedBadge}
+          onClose={() => setShowBadgeModal(false)}
+        />
+      )}
     </div>
   );
 };

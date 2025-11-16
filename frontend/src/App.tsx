@@ -64,6 +64,11 @@ import ProjectList from './components/projects/ProjectList';
 import ProjectDetail from './components/projects/ProjectDetail';
 import ProjectForm from './components/projects/ProjectForm';
 
+// Learning Notes Pages
+import NotesList from './components/notes/NotesList';
+import NoteDetail from './components/notes/NoteDetail';
+import NoteEditor from './components/notes/NoteEditor';
+
 // Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -392,6 +397,40 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <ProjectDetail />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Learning Notes */}
+      <Route
+        path="/notes"
+        element={
+          <ProtectedRoute>
+            <NotesList />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/notes/new"
+        element={
+          <ProtectedRoute>
+            <NoteEditor />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/notes/:noteId"
+        element={
+          <ProtectedRoute>
+            <NoteDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/notes/:noteId/edit"
+        element={
+          <ProtectedRoute>
+            <NoteEditor />
           </ProtectedRoute>
         }
       />

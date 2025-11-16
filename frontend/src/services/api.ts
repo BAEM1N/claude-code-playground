@@ -685,6 +685,51 @@ export const teamProjectsAPI = {
     api.get(`/team-projects/projects/${projectId}/stats`),
 };
 
+// Learning Notes API
+export const learningNotesAPI = {
+  // Notes CRUD
+  getNotes: (params?: { course_id?: string; tag?: string; search?: string }): Promise<AxiosResponse<any>> =>
+    api.get('/learning-notes/notes', { params }),
+  getNote: (noteId: string): Promise<AxiosResponse<any>> =>
+    api.get(`/learning-notes/notes/${noteId}`),
+  createNote: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/learning-notes/notes', data),
+  updateNote: (noteId: string, data: any): Promise<AxiosResponse<any>> =>
+    api.put(`/learning-notes/notes/${noteId}`, data),
+  deleteNote: (noteId: string): Promise<AxiosResponse<void>> =>
+    api.delete(`/learning-notes/notes/${noteId}`),
+
+  // Tags
+  getTags: (): Promise<AxiosResponse<any>> =>
+    api.get('/learning-notes/tags'),
+  addTag: (noteId: string, tag: string): Promise<AxiosResponse<any>> =>
+    api.post(`/learning-notes/notes/${noteId}/tags`, { tag }),
+  removeTag: (noteId: string, tag: string): Promise<AxiosResponse<void>> =>
+    api.delete(`/learning-notes/notes/${noteId}/tags/${tag}`),
+
+  // Code Snippets
+  getSnippets: (params?: any): Promise<AxiosResponse<any>> =>
+    api.get('/learning-notes/snippets', { params }),
+  createSnippet: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/learning-notes/snippets', data),
+  updateSnippet: (snippetId: string, data: any): Promise<AxiosResponse<any>> =>
+    api.put(`/learning-notes/snippets/${snippetId}`, data),
+  deleteSnippet: (snippetId: string): Promise<AxiosResponse<void>> =>
+    api.delete(`/learning-notes/snippets/${snippetId}`),
+
+  // Sharing
+  shareNote: (noteId: string, userIds: string[]): Promise<AxiosResponse<any>> =>
+    api.post(`/learning-notes/notes/${noteId}/share`, { user_ids: userIds }),
+  getSharedNotes: (): Promise<AxiosResponse<any>> =>
+    api.get('/learning-notes/shared'),
+
+  // Favorites
+  toggleFavorite: (noteId: string): Promise<AxiosResponse<any>> =>
+    api.post(`/learning-notes/notes/${noteId}/favorite`),
+  getFavorites: (): Promise<AxiosResponse<any>> =>
+    api.get('/learning-notes/favorites'),
+};
+
 // Gamification API
 export const gamificationAPI = {
   // Profile

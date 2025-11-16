@@ -523,3 +523,72 @@ class BadgeProgress(Base):
     # Relationships
     user_profile = relationship("UserGameProfile")
     badge = relationship("BadgeDefinition")
+
+
+class TeamMessage(Base):
+    """
+    팀 메시지/채팅 (NEW)
+    팀 내 실시간 채팅 및 메시지 기록
+    """
+    __tablename__ = "team_messages"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    team_id = Column(UUID(as_uuid=True), ForeignKey("teams.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("user_profiles.id", ondelete="CASCADE"), nullable=False)
+
+    # Message content
+    message_type = Column(String(20), default="text", nullable=False)  # "text", "image", "file", "system"
+    content = Column(Text, nullable=False)
+
+    # Rich content (optional)
+    metadata = Column(JSON)  # For file URLs, image URLs, mentions, etc.
+
+    # Reply/Thread
+    reply_to_id = Column(UUID(as_uuid=True), ForeignKey("team_messages.id", ondelete="SET NULL"))
+
+    # Reactions
+    reactions = Column(JSON, default=dict)  # {"👍": ["user_id1", "user_id2"], "❤️": ["user_id3"]}
+
+    # Status
+    is_edited = Column(Boolean, default=False, nullable=False)
+    is_deleted = Column(Boolean, default=False, nullable=False)
+    deleted_at = Column(DateTime)
+
+    # Pinned messages
+    is_pinned = Column(Boolean, default=False, nullable=False)
+    pinned_by = Column(UUID(as_uuid=True), ForeignKey("user_profiles.id", ondelete="SET NULL"))
+    pinned_at = Column(DateTime)
+
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    # Relationships
+    team = relationship("Team")
+    user = relationship("UserProfile", foreign_keys=[user_id])
+    reply_to = relationship("TeamMessage", remote_side=[id], foreign_keys=[reply_to_id])
+    pinner = relationship("UserProfile", foreign_keys=[pinned_by])
+
+
+class TeamMessageRead(Base):
+    """
+    팀 메시지 읽음 상태 (NEW)
+    각 사용자가 마지막으로 읽은 메시지 추적
+    """
+    __tablename__ = "team_message_reads"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    team_id = Column(UUID(as_uuid=True), ForeignKey("teams.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("user_profiles.id", ondelete="CASCADE"), nullable=False)
+
+    # Last read message
+    last_read_message_id = Column(UUID(as_uuid=True), ForeignKey("team_messages.id", ondelete="SET NULL"))
+    last_read_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # Unread count cache
+    unread_count = Column(Integer, default=0, nullable=False)
+
+    # Relationships
+    team = relationship("Team")
+    user = relationship("UserProfile")
+    last_read_message = relationship("TeamMessage")

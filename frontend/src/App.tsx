@@ -54,6 +54,7 @@ import CompetitionDetailPage from './pages/CompetitionDetailPage';
 // Gamification Pages
 import BadgesPage from './pages/BadgesPage';
 import LeaderboardPage from './pages/LeaderboardPage';
+import TeamsPage from './pages/TeamsPage';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -325,6 +326,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <LeaderboardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/teams"
+        element={
+          <ProtectedRoute>
+            <TeamsPage />
           </ProtectedRoute>
         }
       />

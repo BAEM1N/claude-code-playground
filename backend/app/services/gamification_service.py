@@ -86,6 +86,40 @@ async def award_xp_to_user(
 
     await db.commit()
 
+    # Create gamification notifications (after commit)
+    from ..services.notification_service import NotificationService
+
+    # Level up notification
+    if xp_result["leveled_up"]:
+        await NotificationService.create_level_up_notification(
+            db,
+            user_id=user_id,
+            new_level=profile.level,
+            xp_gained=xp_amount
+        )
+
+    # Badge earned notifications
+    for badge in awarded_badges:
+        await NotificationService.create_badge_earned_notification(
+            db,
+            user_id=user_id,
+            badge_name=badge.name,
+            badge_icon=badge.icon or "🏅",
+            badge_id=badge.id,
+            xp_reward=badge.xp_reward,
+            points_reward=badge.points_reward
+        )
+
+    # Streak milestone notification
+    if streak_result.get("streak_maintained"):
+        await NotificationService.create_streak_milestone_notification(
+            db,
+            user_id=user_id,
+            streak_days=profile.current_streak
+        )
+
+    await db.commit()
+
     return {
         "xp_gained": xp_amount,
         "points_gained": points_amount,

@@ -16,6 +16,7 @@ import { dashboardAPI } from '../services/api';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorAlert from '../components/common/ErrorAlert';
 import GamificationWidget from '../components/gamification/GamificationWidget';
+import NotificationBell from '../components/notifications/NotificationBell';
 
 const DashboardPage: React.FC = () => {
   const { user, profile } = useAuth();
@@ -71,6 +72,9 @@ const DashboardPage: React.FC = () => {
               <p className="mt-1 text-sm text-gray-600">
                 통합 커뮤니케이션 & 파일 관리 시스템에 오신 것을 환영합니다.
               </p>
+            </div>
+            <div className="flex items-center gap-4">
+              <NotificationBell />
             </div>
           </div>
         </div>

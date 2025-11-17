@@ -69,6 +69,9 @@ import NotesList from './components/notes/NotesList';
 import NoteDetail from './components/notes/NoteDetail';
 import NoteEditor from './components/notes/NoteEditor';
 
+// Learning Analytics Pages
+import LearningAnalyticsDashboard from './components/analytics/LearningAnalyticsDashboard';
+
 // Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -431,6 +434,16 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <NoteEditor />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Learning Analytics */}
+      <Route
+        path="/analytics"
+        element={
+          <ProtectedRoute>
+            <LearningAnalyticsDashboard />
           </ProtectedRoute>
         }
       />

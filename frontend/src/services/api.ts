@@ -730,6 +730,45 @@ export const learningNotesAPI = {
     api.get('/learning-notes/favorites'),
 };
 
+// Learning Analytics API
+export const learningAnalyticsAPI = {
+  // Overview stats
+  getOverview: (params?: { days?: number }): Promise<AxiosResponse<any>> =>
+    api.get('/learning-analytics/overview', { params }),
+
+  // Activity data
+  getActivityHeatmap: (params?: { year?: number }): Promise<AxiosResponse<any>> =>
+    api.get('/learning-analytics/activity-heatmap', { params }),
+  getDailyActivity: (params?: { start_date?: string; end_date?: string }): Promise<AxiosResponse<any>> =>
+    api.get('/learning-analytics/daily-activity', { params }),
+
+  // Time analysis
+  getStudyTimeByHour: (params?: { days?: number }): Promise<AxiosResponse<any>> =>
+    api.get('/learning-analytics/study-time-by-hour', { params }),
+  getStudyTimeByDay: (params?: { weeks?: number }): Promise<AxiosResponse<any>> =>
+    api.get('/learning-analytics/study-time-by-day', { params }),
+
+  // Performance analysis
+  getStrengthsWeaknesses: (): Promise<AxiosResponse<any>> =>
+    api.get('/learning-analytics/strengths-weaknesses'),
+  getTopicProgress: (params?: { course_id?: string }): Promise<AxiosResponse<any>> =>
+    api.get('/learning-analytics/topic-progress', { params }),
+
+  // Goals
+  getGoals: (): Promise<AxiosResponse<any>> =>
+    api.get('/learning-analytics/goals'),
+  createGoal: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/learning-analytics/goals', data),
+  updateGoal: (goalId: string, data: any): Promise<AxiosResponse<any>> =>
+    api.put(`/learning-analytics/goals/${goalId}`, data),
+  deleteGoal: (goalId: string): Promise<AxiosResponse<void>> =>
+    api.delete(`/learning-analytics/goals/${goalId}`),
+
+  // Insights
+  getInsights: (): Promise<AxiosResponse<any>> =>
+    api.get('/learning-analytics/insights'),
+};
+
 // Gamification API
 export const gamificationAPI = {
   // Profile

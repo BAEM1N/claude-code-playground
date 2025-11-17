@@ -846,4 +846,141 @@ export const gamificationAPI = {
     api.patch(`/gamification/admin/badges/${badgeId}`, data),
 };
 
+// Peer Review API
+export const peerReviewAPI = {
+  // Get assignments available for peer review
+  getReviewableAssignments: (params?: { course_id?: string; status?: string }): Promise<AxiosResponse<any>> =>
+    api.get('/peer-review/assignments', { params }),
+
+  // Get submissions to review
+  getSubmissionsToReview: (assignmentId: string, params?: { limit?: number }): Promise<AxiosResponse<any>> =>
+    api.get(`/peer-review/assignments/${assignmentId}/submissions`, { params }),
+
+  // Submit a peer review
+  submitReview: (submissionId: string, data: any): Promise<AxiosResponse<any>> =>
+    api.post(`/peer-review/submissions/${submissionId}/reviews`, data),
+
+  // Get reviews for a submission
+  getReviewsForSubmission: (submissionId: string): Promise<AxiosResponse<any>> =>
+    api.get(`/peer-review/submissions/${submissionId}/reviews`),
+
+  // Get reviews I've written
+  getMyReviews: (params?: { assignment_id?: string; skip?: number; limit?: number }): Promise<AxiosResponse<any>> =>
+    api.get('/peer-review/my-reviews', { params }),
+
+  // Get reviews I've received
+  getReceivedReviews: (params?: { assignment_id?: string; skip?: number; limit?: number }): Promise<AxiosResponse<any>> =>
+    api.get('/peer-review/received-reviews', { params }),
+
+  // Update a review
+  updateReview: (reviewId: string, data: any): Promise<AxiosResponse<any>> =>
+    api.patch(`/peer-review/reviews/${reviewId}`, data),
+
+  // Rate a review (helpful/not helpful)
+  rateReview: (reviewId: string, rating: 'helpful' | 'not_helpful'): Promise<AxiosResponse<any>> =>
+    api.post(`/peer-review/reviews/${reviewId}/rate`, { rating }),
+
+  // Get review statistics
+  getReviewStats: (userId?: string): Promise<AxiosResponse<any>> =>
+    api.get('/peer-review/stats', { params: { user_id: userId } }),
+};
+
+// Study Groups API
+export const studyGroupsAPI = {
+  // Get all study groups
+  getStudyGroups: (params?: { course_id?: string; search?: string; is_public?: boolean; skip?: number; limit?: number }): Promise<AxiosResponse<any>> =>
+    api.get('/study-groups/', { params }),
+
+  // Get my study groups
+  getMyGroups: (): Promise<AxiosResponse<any>> =>
+    api.get('/study-groups/my-groups'),
+
+  // Get single study group
+  getStudyGroup: (groupId: string): Promise<AxiosResponse<any>> =>
+    api.get(`/study-groups/${groupId}`),
+
+  // Create study group
+  createStudyGroup: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/study-groups/', data),
+
+  // Update study group
+  updateStudyGroup: (groupId: string, data: any): Promise<AxiosResponse<any>> =>
+    api.patch(`/study-groups/${groupId}`, data),
+
+  // Delete study group
+  deleteStudyGroup: (groupId: string): Promise<AxiosResponse<any>> =>
+    api.delete(`/study-groups/${groupId}`),
+
+  // Join group
+  joinGroup: (groupId: string): Promise<AxiosResponse<any>> =>
+    api.post(`/study-groups/${groupId}/join`),
+
+  // Leave group
+  leaveGroup: (groupId: string): Promise<AxiosResponse<any>> =>
+    api.post(`/study-groups/${groupId}/leave`),
+
+  // Get group members
+  getGroupMembers: (groupId: string): Promise<AxiosResponse<any>> =>
+    api.get(`/study-groups/${groupId}/members`),
+
+  // Update member role
+  updateMemberRole: (groupId: string, userId: string, role: string): Promise<AxiosResponse<any>> =>
+    api.patch(`/study-groups/${groupId}/members/${userId}`, { role }),
+
+  // Remove member
+  removeMember: (groupId: string, userId: string): Promise<AxiosResponse<any>> =>
+    api.delete(`/study-groups/${groupId}/members/${userId}`),
+
+  // Get group discussions
+  getDiscussions: (groupId: string, params?: { skip?: number; limit?: number }): Promise<AxiosResponse<any>> =>
+    api.get(`/study-groups/${groupId}/discussions`, { params }),
+
+  // Create discussion post
+  createPost: (groupId: string, data: any): Promise<AxiosResponse<any>> =>
+    api.post(`/study-groups/${groupId}/discussions`, data),
+
+  // Update post
+  updatePost: (groupId: string, postId: string, data: any): Promise<AxiosResponse<any>> =>
+    api.patch(`/study-groups/${groupId}/discussions/${postId}`, data),
+
+  // Delete post
+  deletePost: (groupId: string, postId: string): Promise<AxiosResponse<any>> =>
+    api.delete(`/study-groups/${groupId}/discussions/${postId}`),
+
+  // Add comment to post
+  addComment: (groupId: string, postId: string, data: any): Promise<AxiosResponse<any>> =>
+    api.post(`/study-groups/${groupId}/discussions/${postId}/comments`, data),
+
+  // Get study sessions
+  getSessions: (groupId: string, params?: { upcoming?: boolean }): Promise<AxiosResponse<any>> =>
+    api.get(`/study-groups/${groupId}/sessions`, { params }),
+
+  // Create study session
+  createSession: (groupId: string, data: any): Promise<AxiosResponse<any>> =>
+    api.post(`/study-groups/${groupId}/sessions`, data),
+
+  // Update session
+  updateSession: (groupId: string, sessionId: string, data: any): Promise<AxiosResponse<any>> =>
+    api.patch(`/study-groups/${groupId}/sessions/${sessionId}`, data),
+
+  // RSVP to session
+  rsvpSession: (groupId: string, sessionId: string, status: 'attending' | 'not_attending' | 'maybe'): Promise<AxiosResponse<any>> =>
+    api.post(`/study-groups/${groupId}/sessions/${sessionId}/rsvp`, { status }),
+
+  // Get group resources
+  getResources: (groupId: string): Promise<AxiosResponse<any>> =>
+    api.get(`/study-groups/${groupId}/resources`),
+
+  // Upload resource
+  uploadResource: (groupId: string, file: File, data: any): Promise<AxiosResponse<any>> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('title', data.title);
+    formData.append('description', data.description || '');
+    return api.post(`/study-groups/${groupId}/resources`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+};
+
 export default api;

@@ -72,6 +72,15 @@ import NoteEditor from './components/notes/NoteEditor';
 // Learning Analytics Pages
 import LearningAnalyticsDashboard from './components/analytics/LearningAnalyticsDashboard';
 
+// Peer Review Pages
+import PeerReviewList from './components/peer-review/PeerReviewList';
+import ReviewDetail from './components/peer-review/ReviewDetail';
+
+// Study Groups Pages
+import StudyGroupList from './components/study-groups/StudyGroupList';
+import StudyGroupDetail from './components/study-groups/StudyGroupDetail';
+import StudyGroupForm from './components/study-groups/StudyGroupForm';
+
 // Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -444,6 +453,50 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <LearningAnalyticsDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Peer Review */}
+      <Route
+        path="/peer-review"
+        element={
+          <ProtectedRoute>
+            <PeerReviewList />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/peer-review/assignments/:assignmentId"
+        element={
+          <ProtectedRoute>
+            <ReviewDetail />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Study Groups */}
+      <Route
+        path="/study-groups"
+        element={
+          <ProtectedRoute>
+            <StudyGroupList />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/study-groups/new"
+        element={
+          <ProtectedRoute>
+            <StudyGroupForm />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/study-groups/:groupId"
+        element={
+          <ProtectedRoute>
+            <StudyGroupDetail />
           </ProtectedRoute>
         }
       />

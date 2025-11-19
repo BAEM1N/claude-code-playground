@@ -81,6 +81,14 @@ import StudyGroupList from './components/study-groups/StudyGroupList';
 import StudyGroupDetail from './components/study-groups/StudyGroupDetail';
 import StudyGroupForm from './components/study-groups/StudyGroupForm';
 
+// Live Quiz Pages
+import LiveQuizList from './components/live-quiz/LiveQuizList';
+import LiveQuizSession from './components/live-quiz/LiveQuizSession';
+
+// Collaborative Editor Pages
+import EditorSessionList from './components/collab-editor/EditorSessionList';
+import CollaborativeEditor from './components/collab-editor/CollaborativeEditor';
+
 // Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -497,6 +505,42 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <StudyGroupDetail />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Live Quiz */}
+      <Route
+        path="/live-quiz"
+        element={
+          <ProtectedRoute>
+            <LiveQuizList />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/live-quiz/:quizId"
+        element={
+          <ProtectedRoute>
+            <LiveQuizSession />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Collaborative Editor */}
+      <Route
+        path="/collab-editor"
+        element={
+          <ProtectedRoute>
+            <EditorSessionList />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/collab-editor/:sessionId"
+        element={
+          <ProtectedRoute>
+            <CollaborativeEditor />
           </ProtectedRoute>
         }
       />

@@ -983,4 +983,142 @@ export const studyGroupsAPI = {
   },
 };
 
+// Live Quiz/Poll API
+export const liveQuizAPI = {
+  // Get active quizzes/polls
+  getActiveQuizzes: (params?: { course_id?: string; type?: 'quiz' | 'poll' }): Promise<AxiosResponse<any>> =>
+    api.get('/live-quiz/active', { params }),
+
+  // Get my created quizzes
+  getMyQuizzes: (params?: { status?: string; skip?: number; limit?: number }): Promise<AxiosResponse<any>> =>
+    api.get('/live-quiz/my-quizzes', { params }),
+
+  // Get quiz details
+  getQuiz: (quizId: string): Promise<AxiosResponse<any>> =>
+    api.get(`/live-quiz/${quizId}`),
+
+  // Create quiz/poll
+  createQuiz: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/live-quiz/', data),
+
+  // Update quiz
+  updateQuiz: (quizId: string, data: any): Promise<AxiosResponse<any>> =>
+    api.patch(`/live-quiz/${quizId}`, data),
+
+  // Delete quiz
+  deleteQuiz: (quizId: string): Promise<AxiosResponse<any>> =>
+    api.delete(`/live-quiz/${quizId}`),
+
+  // Start quiz session
+  startQuiz: (quizId: string): Promise<AxiosResponse<any>> =>
+    api.post(`/live-quiz/${quizId}/start`),
+
+  // End quiz session
+  endQuiz: (quizId: string): Promise<AxiosResponse<any>> =>
+    api.post(`/live-quiz/${quizId}/end`),
+
+  // Join quiz session
+  joinQuiz: (quizId: string): Promise<AxiosResponse<any>> =>
+    api.post(`/live-quiz/${quizId}/join`),
+
+  // Submit answer
+  submitAnswer: (quizId: string, questionId: string, answer: any): Promise<AxiosResponse<any>> =>
+    api.post(`/live-quiz/${quizId}/questions/${questionId}/answer`, { answer }),
+
+  // Get current question
+  getCurrentQuestion: (quizId: string): Promise<AxiosResponse<any>> =>
+    api.get(`/live-quiz/${quizId}/current-question`),
+
+  // Move to next question (host only)
+  nextQuestion: (quizId: string): Promise<AxiosResponse<any>> =>
+    api.post(`/live-quiz/${quizId}/next-question`),
+
+  // Get live results
+  getLiveResults: (quizId: string): Promise<AxiosResponse<any>> =>
+    api.get(`/live-quiz/${quizId}/results`),
+
+  // Get participants
+  getParticipants: (quizId: string): Promise<AxiosResponse<any>> =>
+    api.get(`/live-quiz/${quizId}/participants`),
+
+  // Get leaderboard
+  getLeaderboard: (quizId: string): Promise<AxiosResponse<any>> =>
+    api.get(`/live-quiz/${quizId}/leaderboard`),
+};
+
+// Collaborative Code Editor API
+export const collaborativeEditorAPI = {
+  // Get active sessions
+  getActiveSessions: (params?: { language?: string; is_public?: boolean }): Promise<AxiosResponse<any>> =>
+    api.get('/collab-editor/sessions', { params }),
+
+  // Get my sessions
+  getMySessions: (): Promise<AxiosResponse<any>> =>
+    api.get('/collab-editor/my-sessions'),
+
+  // Get session details
+  getSession: (sessionId: string): Promise<AxiosResponse<any>> =>
+    api.get(`/collab-editor/sessions/${sessionId}`),
+
+  // Create session
+  createSession: (data: any): Promise<AxiosResponse<any>> =>
+    api.post('/collab-editor/sessions', data),
+
+  // Update session
+  updateSession: (sessionId: string, data: any): Promise<AxiosResponse<any>> =>
+    api.patch(`/collab-editor/sessions/${sessionId}`, data),
+
+  // Delete session
+  deleteSession: (sessionId: string): Promise<AxiosResponse<any>> =>
+    api.delete(`/collab-editor/sessions/${sessionId}`),
+
+  // Join session
+  joinSession: (sessionId: string): Promise<AxiosResponse<any>> =>
+    api.post(`/collab-editor/sessions/${sessionId}/join`),
+
+  // Leave session
+  leaveSession: (sessionId: string): Promise<AxiosResponse<any>> =>
+    api.post(`/collab-editor/sessions/${sessionId}/leave`),
+
+  // Get session code
+  getCode: (sessionId: string): Promise<AxiosResponse<any>> =>
+    api.get(`/collab-editor/sessions/${sessionId}/code`),
+
+  // Update code
+  updateCode: (sessionId: string, code: string, version: number): Promise<AxiosResponse<any>> =>
+    api.post(`/collab-editor/sessions/${sessionId}/code`, { code, version }),
+
+  // Get participants
+  getParticipants: (sessionId: string): Promise<AxiosResponse<any>> =>
+    api.get(`/collab-editor/sessions/${sessionId}/participants`),
+
+  // Update cursor position
+  updateCursor: (sessionId: string, position: { line: number; column: number }): Promise<AxiosResponse<any>> =>
+    api.post(`/collab-editor/sessions/${sessionId}/cursor`, position),
+
+  // Run code
+  runCode: (sessionId: string, input?: string): Promise<AxiosResponse<any>> =>
+    api.post(`/collab-editor/sessions/${sessionId}/run`, { input }),
+
+  // Get chat messages
+  getMessages: (sessionId: string): Promise<AxiosResponse<any>> =>
+    api.get(`/collab-editor/sessions/${sessionId}/messages`),
+
+  // Send chat message
+  sendMessage: (sessionId: string, message: string): Promise<AxiosResponse<any>> =>
+    api.post(`/collab-editor/sessions/${sessionId}/messages`, { message }),
+
+  // Save snapshot
+  saveSnapshot: (sessionId: string, name: string): Promise<AxiosResponse<any>> =>
+    api.post(`/collab-editor/sessions/${sessionId}/snapshots`, { name }),
+
+  // Get snapshots
+  getSnapshots: (sessionId: string): Promise<AxiosResponse<any>> =>
+    api.get(`/collab-editor/sessions/${sessionId}/snapshots`),
+
+  // Restore snapshot
+  restoreSnapshot: (sessionId: string, snapshotId: string): Promise<AxiosResponse<any>> =>
+    api.post(`/collab-editor/sessions/${sessionId}/snapshots/${snapshotId}/restore`),
+};
+
 export default api;
